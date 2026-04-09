@@ -1,9 +1,7 @@
 package com.rdr.easy2;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
 import android.text.InputType;
 import android.util.TypedValue;
@@ -26,6 +24,7 @@ public final class Easy2KeyboardController {
     private final List<EditText> attachedInputs = new ArrayList<>();
     private final List<TextView> characterKeys = new ArrayList<>();
 
+    private View handleView;
     private TextView shiftKeyView;
     private TextView hideKeyView;
     private TextView deleteKeyView;
@@ -62,35 +61,17 @@ public final class Easy2KeyboardController {
     }
 
     public void applyTheme(LauncherThemePalette palette) {
-        keyboardContainer.setBackground(createRoundedBackground(
-                palette.getSetupContactFillColor(),
-                palette.getSetupContactStrokeColor(),
-                24,
-                2
-        ));
+        Easy2KeyboardStyler.stylePanel(keyboardContainer, palette);
+        Easy2KeyboardStyler.styleHandle(handleView, palette);
 
         for (TextView keyView : characterKeys) {
-            keyView.setTextColor(palette.getInputTextColor());
-            keyView.setBackground(createRoundedBackground(
-                    palette.getSetupFieldFillColor(),
-                    palette.getSetupFieldStrokeColor(),
-                    18,
-                    2
-            ));
+            Easy2KeyboardStyler.styleCharacterKey(keyView, palette);
         }
 
-        if (spaceKeyView != null) {
-            styleActionKey(spaceKeyView, palette.getChipColor(), palette.getChipColor());
-        }
-        if (enterKeyView != null) {
-            styleActionKey(enterKeyView, palette.getPrimaryColor(), palette.getPrimaryColor());
-        }
-        if (hideKeyView != null) {
-            styleActionKey(hideKeyView, palette.getCircleColor(), palette.getCircleColor());
-        }
-        if (deleteKeyView != null) {
-            styleActionKey(deleteKeyView, 0xFFD32F2F, 0xFFB71C1C);
-        }
+        Easy2KeyboardStyler.styleSpaceKey(spaceKeyView, palette);
+        Easy2KeyboardStyler.styleEnterKey(enterKeyView, palette);
+        Easy2KeyboardStyler.styleHideKey(hideKeyView, palette);
+        Easy2KeyboardStyler.styleDeleteKey(deleteKeyView);
         updateShiftKeyTheme(palette);
         updateCharacterKeyLabels();
     }
@@ -118,8 +99,11 @@ public final class Easy2KeyboardController {
     private void buildKeyboard() {
         keyboardContainer.removeAllViews();
         keyboardContainer.setOrientation(LinearLayout.VERTICAL);
-        keyboardContainer.setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
-        keyboardContainer.setElevation(dpToPx(10));
+        keyboardContainer.setClipToPadding(false);
+        keyboardContainer.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(14));
+
+        handleView = createHandleView();
+        keyboardContainer.addView(handleView);
 
         addCharacterRow(new String[]{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"});
         addCharacterRow(new String[]{"q", "w", "e", "r", "t", "y", "u", "i", "o", "p"});
@@ -193,6 +177,8 @@ public final class Easy2KeyboardController {
     ) {
         TextView keyView = createBaseKey(weight);
         keyView.setText(label);
+        keyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        keyView.setLetterSpacing(0.01f);
         keyView.setOnClickListener(listener);
         row.addView(keyView);
         return keyView;
@@ -205,6 +191,7 @@ public final class Easy2KeyboardController {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
+        row.setClipToPadding(false);
         return row;
     }
 
@@ -212,17 +199,30 @@ public final class Easy2KeyboardController {
         TextView keyView = new TextView(activity);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 0,
-                dpToPx(54),
+                dpToPx(58),
                 weight
         );
-        int margin = dpToPx(3);
+        int margin = dpToPx(4);
         params.setMargins(margin, margin, margin, margin);
         keyView.setLayoutParams(params);
         keyView.setGravity(Gravity.CENTER);
-        keyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        keyView.setTypeface(Typeface.DEFAULT_BOLD);
+        keyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 21);
+        keyView.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        keyView.setLetterSpacing(0.015f);
         keyView.setIncludeFontPadding(false);
         return keyView;
+    }
+
+    private View createHandleView() {
+        View view = new View(activity);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                dpToPx(54),
+                dpToPx(6)
+        );
+        params.gravity = Gravity.CENTER_HORIZONTAL;
+        params.bottomMargin = dpToPx(10);
+        view.setLayoutParams(params);
+        return view;
     }
 
     private void showFor(EditText editText) {
@@ -341,9 +341,7 @@ public final class Easy2KeyboardController {
     private void toggleShift() {
         shifted = !shifted;
         updateCharacterKeyLabels();
-        if (shiftKeyView != null && shiftKeyView.getBackground() instanceof GradientDrawable) {
-            shiftKeyView.setSelected(shifted);
-        }
+        updateShiftKeyTheme(LauncherThemePalette.fromPreferences(activity));
     }
 
     private void updateCharacterKeyLabels() {
@@ -362,34 +360,7 @@ public final class Easy2KeyboardController {
     }
 
     private void updateShiftKeyTheme(LauncherThemePalette palette) {
-        if (shiftKeyView == null) {
-            return;
-        }
-
-        int fill = shifted ? palette.getPrimaryColor() : palette.getChipColor();
-        int stroke = shifted ? palette.getPrimaryColor() : palette.getChipColor();
-        styleActionKey(shiftKeyView, fill, stroke);
-    }
-
-    private void styleActionKey(TextView keyView, int fillColor, int strokeColor) {
-        keyView.setTextColor(Color.WHITE);
-        keyView.setBackground(createRoundedBackground(fillColor, strokeColor, 18, 2));
-    }
-
-    private GradientDrawable createRoundedBackground(
-            int fillColor,
-            int strokeColor,
-            int radiusDp,
-            int strokeWidthDp
-    ) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setShape(GradientDrawable.RECTANGLE);
-        drawable.setColor(fillColor);
-        drawable.setCornerRadius(dpToPx(radiusDp));
-        if (strokeWidthDp > 0) {
-            drawable.setStroke(dpToPx(strokeWidthDp), strokeColor);
-        }
-        return drawable;
+        Easy2KeyboardStyler.styleShiftKey(shiftKeyView, palette, shifted);
     }
 
     private boolean isNumericField(EditText editText) {

@@ -70,7 +70,7 @@ public final class RemoteServerClient {
     }
 
     public static String buildDashboardUrl(String baseUrl) {
-        return buildApiUrl(baseUrl, "/dashboard?embedded=1");
+        return buildApiUrl(baseUrl, "/admin?embedded=1");
     }
 
     public static String normalizeBaseUrl(String baseUrl) {

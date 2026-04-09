@@ -1,8 +1,6 @@
 package com.rdr.easy2;
 
-import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.inputmethodservice.InputMethodService;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -19,6 +17,7 @@ public class Easy2InputMethodService extends InputMethodService {
     private final List<TextView> characterKeys = new ArrayList<>();
 
     private LinearLayout keyboardRootView;
+    private View handleView;
     private TextView shiftKeyView;
     private TextView deleteKeyView;
     private TextView hideKeyView;
@@ -30,8 +29,11 @@ public class Easy2InputMethodService extends InputMethodService {
     public View onCreateInputView() {
         keyboardRootView = new LinearLayout(this);
         keyboardRootView.setOrientation(LinearLayout.VERTICAL);
-        keyboardRootView.setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
-        keyboardRootView.setElevation(dpToPx(10));
+        keyboardRootView.setClipToPadding(false);
+        keyboardRootView.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(14));
+
+        handleView = createHandleView();
+        keyboardRootView.addView(handleView);
 
         addCharacterRow(new String[]{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"});
         addCharacterRow(new String[]{"q", "w", "e", "r", "t", "y", "u", "i", "o", "p"});
@@ -121,6 +123,8 @@ public class Easy2InputMethodService extends InputMethodService {
     ) {
         TextView keyView = createBaseKey(weight);
         keyView.setText(label);
+        keyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        keyView.setLetterSpacing(0.01f);
         keyView.setOnClickListener(listener);
         row.addView(keyView);
         return keyView;
@@ -133,6 +137,7 @@ public class Easy2InputMethodService extends InputMethodService {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
+        row.setClipToPadding(false);
         return row;
     }
 
@@ -140,17 +145,30 @@ public class Easy2InputMethodService extends InputMethodService {
         TextView keyView = new TextView(this);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 0,
-                dpToPx(54),
+                dpToPx(58),
                 weight
         );
-        int margin = dpToPx(3);
+        int margin = dpToPx(4);
         params.setMargins(margin, margin, margin, margin);
         keyView.setLayoutParams(params);
         keyView.setGravity(Gravity.CENTER);
-        keyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        keyView.setTypeface(Typeface.DEFAULT_BOLD);
+        keyView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 21);
+        keyView.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        keyView.setLetterSpacing(0.015f);
         keyView.setIncludeFontPadding(false);
         return keyView;
+    }
+
+    private View createHandleView() {
+        View view = new View(this);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                dpToPx(54),
+                dpToPx(6)
+        );
+        params.gravity = Gravity.CENTER_HORIZONTAL;
+        params.bottomMargin = dpToPx(10);
+        view.setLayoutParams(params);
+        return view;
     }
 
     private void applyThemePalette() {
@@ -159,40 +177,18 @@ public class Easy2InputMethodService extends InputMethodService {
         }
 
         LauncherThemePalette palette = LauncherThemePalette.fromPreferences(this);
-        keyboardRootView.setBackground(createRoundedBackground(
-                palette.getSetupContactFillColor(),
-                palette.getSetupContactStrokeColor(),
-                24,
-                2
-        ));
+        Easy2KeyboardStyler.stylePanel(keyboardRootView, palette);
+        Easy2KeyboardStyler.styleHandle(handleView, palette);
 
         for (TextView keyView : characterKeys) {
-            keyView.setTextColor(palette.getInputTextColor());
-            keyView.setBackground(createRoundedBackground(
-                    palette.getSetupFieldFillColor(),
-                    palette.getSetupFieldStrokeColor(),
-                    18,
-                    2
-            ));
+            Easy2KeyboardStyler.styleCharacterKey(keyView, palette);
         }
 
-        styleActionKey(spaceKeyView, palette.getChipColor(), palette.getChipColor());
-        styleActionKey(enterKeyView, palette.getPrimaryColor(), palette.getPrimaryColor());
-        styleActionKey(hideKeyView, palette.getCircleColor(), palette.getCircleColor());
-        styleActionKey(deleteKeyView, 0xFFD32F2F, 0xFFB71C1C);
-        styleActionKey(
-                shiftKeyView,
-                shifted ? palette.getPrimaryColor() : palette.getChipColor(),
-                shifted ? palette.getPrimaryColor() : palette.getChipColor()
-        );
-    }
-
-    private void styleActionKey(TextView keyView, int fillColor, int strokeColor) {
-        if (keyView == null) {
-            return;
-        }
-        keyView.setTextColor(Color.WHITE);
-        keyView.setBackground(createRoundedBackground(fillColor, strokeColor, 18, 2));
+        Easy2KeyboardStyler.styleSpaceKey(spaceKeyView, palette);
+        Easy2KeyboardStyler.styleEnterKey(enterKeyView, palette);
+        Easy2KeyboardStyler.styleHideKey(hideKeyView, palette);
+        Easy2KeyboardStyler.styleDeleteKey(deleteKeyView);
+        Easy2KeyboardStyler.styleShiftKey(shiftKeyView, palette, shifted);
     }
 
     private void commitText(String text) {
@@ -252,22 +248,6 @@ public class Easy2InputMethodService extends InputMethodService {
 
     private boolean isNumericValue(String value) {
         return value.length() == 1 && Character.isDigit(value.charAt(0));
-    }
-
-    private GradientDrawable createRoundedBackground(
-            int fillColor,
-            int strokeColor,
-            int radiusDp,
-            int strokeWidthDp
-    ) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setShape(GradientDrawable.RECTANGLE);
-        drawable.setColor(fillColor);
-        drawable.setCornerRadius(dpToPx(radiusDp));
-        if (strokeWidthDp > 0) {
-            drawable.setStroke(dpToPx(strokeWidthDp), strokeColor);
-        }
-        return drawable;
     }
 
     private int dpToPx(int dpValue) {
