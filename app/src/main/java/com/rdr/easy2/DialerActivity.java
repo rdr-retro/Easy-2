@@ -293,11 +293,23 @@ public class DialerActivity extends AppCompatActivity {
         styleDialerButton(findViewById(R.id.dialer_digit_star), palette.getCircleColor());
         styleDialerButton(findViewById(R.id.dialer_digit_0), palette.getCircleColor());
         styleDialerButton(findViewById(R.id.dialer_digit_hash), palette.getCircleColor());
-        styleActionButton(deleteButton, palette.getChipColor());
+        styleActionButton(deleteButton, "dialer_delete", palette.getChipColor(), palette);
 
         if (callButton != null) {
-            callButton.setBackground(createRoundedBackground(0xFF2EAD4E, 0xFF2EAD4E, 28, 0));
-            callButton.setTextColor(Color.WHITE);
+            int callButtonFill = ColorblindStyleHelper.resolveSemanticAccentColor(
+                    "dialer_call",
+                    0xFF2EAD4E,
+                    palette
+            );
+            callButton.setBackground(createRoundedBackground(
+                    callButtonFill,
+                    callButtonFill,
+                    28,
+                    ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+            ));
+            callButton.setTextColor(
+                    ColorblindStyleHelper.resolveTextColorForBackground(callButtonFill)
+            );
         }
 
         if (volumeOverlayController != null) {
@@ -314,13 +326,28 @@ public class DialerActivity extends AppCompatActivity {
         button.setTextColor(Color.WHITE);
     }
 
-    private void styleActionButton(View buttonView, int fillColor) {
+    private void styleActionButton(
+            View buttonView,
+            String stableKey,
+            int fallbackColor,
+            LauncherThemePalette palette
+    ) {
         if (!(buttonView instanceof TextView)) {
             return;
         }
         TextView button = (TextView) buttonView;
-        button.setBackground(createRoundedBackground(fillColor, fillColor, 28, 0));
-        button.setTextColor(Color.WHITE);
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                fallbackColor,
+                palette
+        );
+        button.setBackground(createRoundedBackground(
+                fillColor,
+                fillColor,
+                28,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
     }
 
     private GradientDrawable createRoundedBackground(

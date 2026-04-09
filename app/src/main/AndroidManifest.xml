@@ -46,6 +46,11 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".ContactPhotosActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
             android:name=".UtilitiesActivity"
             android:exported="false"
             android:screenOrientation="portrait" />

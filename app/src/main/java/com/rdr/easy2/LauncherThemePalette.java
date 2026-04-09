@@ -12,6 +12,7 @@ public final class LauncherThemePalette {
     public static final String KEY_CORAL = "coral";
     public static final String KEY_TEAL = "teal";
     public static final String KEY_BLACK = "black";
+    public static final String KEY_COLORBLIND = "colorblind";
 
     private static final List<LauncherThemePalette> OPTIONS = new ArrayList<>();
 
@@ -111,6 +112,22 @@ public final class LauncherThemePalette {
                 0xFFFFFFFF,
                 0x99FFFFFF,
                 true
+        ));
+        OPTIONS.add(new LauncherThemePalette(
+                KEY_COLORBLIND,
+                0xFF0B4F8A,
+                0xFF2A6F97,
+                0xFF005F73,
+                0xFFF3F7FB,
+                0x330B4F8A,
+                0xFFE6EEF6,
+                0x550B4F8A,
+                0xFFF8FBFD,
+                0xFF0B4F8A,
+                0xFF111111,
+                0xFF111111,
+                0x99111111,
+                false
         ));
     }
 

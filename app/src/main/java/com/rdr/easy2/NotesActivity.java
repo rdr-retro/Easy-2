@@ -17,7 +17,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -151,16 +150,11 @@ public class NotesActivity extends AppCompatActivity {
         noteEditorView.setTextColor(0xFF4A3A14);
         noteEditorView.setHintTextColor(0x99725621);
 
-        addButtonView.setTextColor(Color.WHITE);
-        addButtonView.setBackground(createCircleBackground(palette.getPrimaryColor()));
-        closeAppButtonView.setTextColor(Color.WHITE);
-        closeAppButtonView.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_close_button));
-        saveButtonView.setTextColor(Color.WHITE);
-        saveButtonView.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_save_button));
-        closeButtonView.setTextColor(Color.WHITE);
-        closeButtonView.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_close_button));
-        deleteButtonView.setTextColor(Color.WHITE);
-        deleteButtonView.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_close_button));
+        styleCircleActionButton(addButtonView, "notes_add", palette.getPrimaryColor());
+        styleRoundedActionButton(closeAppButtonView, "notes_close_app", 0xFFE53935);
+        styleRoundedActionButton(saveButtonView, "notes_save", 0xFF2EAD4E);
+        styleRoundedActionButton(closeButtonView, "notes_close_editor", 0xFFE53935);
+        styleRoundedActionButton(deleteButtonView, "notes_delete", 0xFFD84343);
         if (keyboardController != null) {
             keyboardController.applyTheme(palette);
         }
@@ -168,6 +162,45 @@ public class NotesActivity extends AppCompatActivity {
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);
         }
+    }
+
+    private void styleCircleActionButton(TextView button, String stableKey, int fallbackColor) {
+        if (button == null) {
+            return;
+        }
+
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                fallbackColor,
+                palette
+        );
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
+        button.setBackground(ColorblindStyleHelper.createCircleBackground(
+                this,
+                fillColor,
+                fillColor,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
+    }
+
+    private void styleRoundedActionButton(TextView button, String stableKey, int fallbackColor) {
+        if (button == null) {
+            return;
+        }
+
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                fallbackColor,
+                palette
+        );
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
+        button.setBackground(ColorblindStyleHelper.createRoundedBackground(
+                this,
+                fillColor,
+                fillColor,
+                28,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
     }
 
     private void openEditor() {

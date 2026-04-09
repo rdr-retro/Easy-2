@@ -2,13 +2,12 @@ package com.rdr.easy2;
 
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
-import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -58,6 +57,12 @@ public class UtilitiesActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        applyThemePalette();
+    }
+
+    @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {
@@ -98,14 +103,19 @@ public class UtilitiesActivity extends AppCompatActivity {
         View rootView = findViewById(R.id.utilities_root);
         TextView titleView = findViewById(R.id.utilities_title_view);
         FrameLayout calendarCircle = findViewById(R.id.utility_calendar_circle);
+        ImageView calendarIcon = findViewById(R.id.utility_calendar_icon);
         TextView calendarLabel = findViewById(R.id.utility_calendar_label);
         FrameLayout noteCircle = findViewById(R.id.utility_note_circle);
+        ImageView noteIcon = findViewById(R.id.utility_note_icon);
         TextView noteLabel = findViewById(R.id.utility_note_label);
         FrameLayout scanFoodCircle = findViewById(R.id.utility_scan_food_circle);
+        ImageView scanFoodIcon = findViewById(R.id.utility_scan_food_icon);
         TextView scanFoodLabel = findViewById(R.id.utility_scan_food_label);
         FrameLayout hearingCircle = findViewById(R.id.utility_hearing_circle);
+        ImageView hearingIcon = findViewById(R.id.utility_hearing_icon);
         TextView hearingLabel = findViewById(R.id.utility_hearing_label);
         FrameLayout alarmCircle = findViewById(R.id.utility_alarm_circle);
+        ImageView alarmIcon = findViewById(R.id.utility_alarm_icon);
         TextView alarmLabel = findViewById(R.id.utility_alarm_label);
 
         if (rootView != null) {
@@ -114,61 +124,47 @@ public class UtilitiesActivity extends AppCompatActivity {
         if (titleView != null) {
             titleView.setTextColor(palette.getHeadingColor());
         }
-        if (calendarCircle != null) {
-            calendarCircle.setBackground(createCircleBackground(palette.getCircleColor()));
-        }
-        if (calendarLabel != null) {
-            calendarLabel.setBackground(createRoundedBackground(palette.getChipColor(), 18));
-        }
-        if (noteCircle != null) {
-            noteCircle.setBackground(createCircleBackground(palette.getCircleColor()));
-        }
-        if (noteLabel != null) {
-            noteLabel.setBackground(createRoundedBackground(palette.getChipColor(), 18));
-        }
-        if (scanFoodCircle != null) {
-            scanFoodCircle.setBackground(createCircleBackground(palette.getCircleColor()));
-        }
-        if (scanFoodLabel != null) {
-            scanFoodLabel.setBackground(createRoundedBackground(palette.getChipColor(), 18));
-        }
-        if (hearingCircle != null) {
-            hearingCircle.setBackground(createCircleBackground(palette.getCircleColor()));
-        }
-        if (hearingLabel != null) {
-            hearingLabel.setBackground(createRoundedBackground(palette.getChipColor(), 18));
-        }
-        if (alarmCircle != null) {
-            alarmCircle.setBackground(createCircleBackground(palette.getCircleColor()));
-        }
-        if (alarmLabel != null) {
-            alarmLabel.setBackground(createRoundedBackground(palette.getChipColor(), 18));
-        }
+        applyUtilityStyle("utility_calendar", calendarCircle, calendarIcon, calendarLabel, palette);
+        applyUtilityStyle("utility_note", noteCircle, noteIcon, noteLabel, palette);
+        applyUtilityStyle("utility_scan_food", scanFoodCircle, scanFoodIcon, scanFoodLabel, palette);
+        applyUtilityStyle("utility_hearing", hearingCircle, hearingIcon, hearingLabel, palette);
+        applyUtilityStyle("utility_alarm", alarmCircle, alarmIcon, alarmLabel, palette);
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);
         }
     }
 
-    private GradientDrawable createCircleBackground(int fillColor) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setShape(GradientDrawable.OVAL);
-        drawable.setColor(fillColor);
-        return drawable;
-    }
+    private void applyUtilityStyle(
+            String stableKey,
+            FrameLayout circleView,
+            ImageView iconView,
+            TextView labelView,
+            LauncherThemePalette palette
+    ) {
+        int accentColor = ColorblindStyleHelper.resolveAppAccentColor(stableKey, palette);
+        boolean colorblindMode = ColorblindStyleHelper.isColorblindMode(palette);
 
-    private GradientDrawable createRoundedBackground(int fillColor, int cornerRadiusDp) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setShape(GradientDrawable.RECTANGLE);
-        drawable.setCornerRadius(dpToPx(cornerRadiusDp));
-        drawable.setColor(fillColor);
-        return drawable;
-    }
-
-    private float dpToPx(int dpValue) {
-        return TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                dpValue,
-                getResources().getDisplayMetrics()
-        );
+        if (circleView != null) {
+            circleView.setBackground(ColorblindStyleHelper.createCircleBackground(
+                    this,
+                    ColorblindStyleHelper.resolveAppSurfaceColor(stableKey, palette),
+                    accentColor,
+                    colorblindMode ? 4 : 0
+            ));
+        }
+        ColorblindStyleHelper.applyIconColor(iconView, stableKey, palette);
+        if (labelView != null) {
+            labelView.setBackground(ColorblindStyleHelper.createRoundedBackground(
+                    this,
+                    ColorblindStyleHelper.resolveAppLabelColor(stableKey, palette),
+                    colorblindMode ? accentColor : Color.TRANSPARENT,
+                    18,
+                    0
+            ));
+            labelView.setTextColor(ColorblindStyleHelper.resolveTextColorOnAccent(
+                    stableKey,
+                    palette
+            ));
+        }
     }
 }

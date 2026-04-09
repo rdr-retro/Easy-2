@@ -1,5 +1,6 @@
 package com.rdr.easy2;
 
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.graphics.drawable.GradientDrawable;
@@ -122,10 +123,21 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
                     : contactEntry.getContactPhotoUri();
 
             if (imageUri != null) {
-                imageView.setImageURI(null);
-                imageView.setImageURI(imageUri);
-                imageView.setVisibility(View.VISIBLE);
-                initialView.setVisibility(View.GONE);
+                Bitmap contactBitmap = ContactPhotoStorage.loadDisplayBitmap(
+                        itemView.getContext(),
+                        imageUri,
+                        Math.round(dpToPx(154))
+                );
+                if (contactBitmap != null) {
+                    imageView.setImageBitmap(contactBitmap);
+                    imageView.setVisibility(View.VISIBLE);
+                    initialView.setVisibility(View.GONE);
+                } else {
+                    imageView.setImageURI(null);
+                    imageView.setImageURI(imageUri);
+                    imageView.setVisibility(View.VISIBLE);
+                    initialView.setVisibility(View.GONE);
+                }
             } else {
                 imageView.setImageDrawable(null);
                 imageView.setVisibility(View.INVISIBLE);

@@ -92,23 +92,59 @@ public class HearingAssistActivity extends AppCompatActivity {
             subtitleView.setTextColor(palette.getBodyTextColor());
         }
 
-        styleActionButton(amplifierButton, palette.getPrimaryColor());
-        styleActionButton(soundButton, palette.getChipColor());
-        styleActionButton(devicesButton, palette.getCircleColor());
-        styleActionButton(accessibilityButton, blend(palette.getPrimaryColor(), palette.getCircleColor(), 0.42f));
+        styleActionButton(
+                amplifierButton,
+                "hearing_amplifier",
+                palette.getPrimaryColor(),
+                palette
+        );
+        styleActionButton(
+                soundButton,
+                "hearing_sound",
+                palette.getChipColor(),
+                palette
+        );
+        styleActionButton(
+                devicesButton,
+                "hearing_devices",
+                palette.getCircleColor(),
+                palette
+        );
+        styleActionButton(
+                accessibilityButton,
+                "hearing_accessibility",
+                blend(palette.getPrimaryColor(), palette.getCircleColor(), 0.42f),
+                palette
+        );
 
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);
         }
     }
 
-    private void styleActionButton(TextView button, int fillColor) {
+    private void styleActionButton(
+            TextView button,
+            String stableKey,
+            int fallbackColor,
+            LauncherThemePalette palette
+    ) {
         if (button == null) {
             return;
         }
 
-        button.setTextColor(Color.WHITE);
-        button.setBackground(createRoundedBackground(fillColor, 26));
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                fallbackColor,
+                palette
+        );
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
+        button.setBackground(ColorblindStyleHelper.createRoundedBackground(
+                this,
+                fillColor,
+                fillColor,
+                26,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
     }
 
     private void openSoundAmplifier() {

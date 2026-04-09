@@ -26,6 +26,7 @@ import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.ViewCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +46,10 @@ public class SettingsActivity extends AppCompatActivity {
     private View contactsCardView;
     private View accessibilityCardView;
     private View supportCardView;
+    private View categoryPersonalDivider;
+    private View categoryHealthDivider;
+    private View categoryAccessibilityDivider;
+    private View categorySystemDivider;
     private View clientContactsContainer;
     private ScrollView settingsScrollView;
     private TextView titleView;
@@ -59,6 +64,10 @@ public class SettingsActivity extends AppCompatActivity {
     private TextView contactsTitleView;
     private TextView accessibilityTitleView;
     private TextView accessibilityDetailView;
+    private TextView colorblindTitleView;
+    private TextView colorblindDetailView;
+    private TextView highContrastTitleView;
+    private TextView highContrastDetailView;
     private TextView supportTitleView;
     private TextView contactsHelperView;
     private TextView roleTitleView;
@@ -69,12 +78,12 @@ public class SettingsActivity extends AppCompatActivity {
     private TextView adminHelperView;
     private Button closeButton;
     private Button saveButton;
+    private Button manageContactPhotosButton;
     private Button organizeShortcutsButton;
     private Button phoneSettingsButton;
     private Button keyboardSettingsButton;
-    private Button accessibilitySettingsButton;
-    private Button displaySettingsButton;
-    private Button hearingAssistButton;
+    private Button colorblindThemeButton;
+    private Button highContrastThemeButton;
     private final TextView[] contactSlots = new TextView[4];
     private final TextView[] colorOptions = new TextView[6];
     private final TextView[] colorLabels = new TextView[6];
@@ -107,6 +116,10 @@ public class SettingsActivity extends AppCompatActivity {
         contactsCardView = findViewById(R.id.settings_contacts_card);
         accessibilityCardView = findViewById(R.id.settings_accessibility_card);
         supportCardView = findViewById(R.id.settings_support_card);
+        categoryPersonalDivider = findViewById(R.id.settings_category_personal_divider);
+        categoryHealthDivider = findViewById(R.id.settings_category_health_divider);
+        categoryAccessibilityDivider = findViewById(R.id.settings_category_accessibility_divider);
+        categorySystemDivider = findViewById(R.id.settings_category_system_divider);
         titleView = findViewById(R.id.settings_title_view);
         subtitleView = findViewById(R.id.settings_subtitle_view);
         categoryPersonalView = findViewById(R.id.settings_category_personal_view);
@@ -119,6 +132,10 @@ public class SettingsActivity extends AppCompatActivity {
         contactsTitleView = findViewById(R.id.settings_contacts_title_view);
         accessibilityTitleView = findViewById(R.id.settings_accessibility_title_view);
         accessibilityDetailView = findViewById(R.id.settings_accessibility_detail_view);
+        colorblindTitleView = findViewById(R.id.settings_colorblind_title_view);
+        colorblindDetailView = findViewById(R.id.settings_colorblind_detail_view);
+        highContrastTitleView = findViewById(R.id.settings_high_contrast_title_view);
+        highContrastDetailView = findViewById(R.id.settings_high_contrast_detail_view);
         supportTitleView = findViewById(R.id.settings_support_title_view);
         contactsHelperView = findViewById(R.id.setup_contacts_helper_view);
         roleTitleView = findViewById(R.id.setup_role_title_view);
@@ -134,12 +151,12 @@ public class SettingsActivity extends AppCompatActivity {
         serverUrlInput = findViewById(R.id.input_server_url);
         closeButton = findViewById(R.id.settings_close_button);
         saveButton = findViewById(R.id.settings_save_button);
+        manageContactPhotosButton = findViewById(R.id.manage_contact_photos_button);
         organizeShortcutsButton = findViewById(R.id.organize_shortcuts_button);
         phoneSettingsButton = findViewById(R.id.open_phone_settings_button);
         keyboardSettingsButton = findViewById(R.id.open_keyboard_settings_button);
-        accessibilitySettingsButton = findViewById(R.id.open_accessibility_settings_button);
-        displaySettingsButton = findViewById(R.id.open_display_settings_button);
-        hearingAssistButton = findViewById(R.id.open_hearing_assist_button);
+        colorblindThemeButton = findViewById(R.id.enable_colorblind_theme_button);
+        highContrastThemeButton = findViewById(R.id.enable_high_contrast_theme_button);
         clientContactsContainer = findViewById(R.id.setup_client_contacts_container);
 
         contactSlots[0] = findViewById(R.id.contact_slot_0);
@@ -199,6 +216,12 @@ public class SettingsActivity extends AppCompatActivity {
                 startActivity(new Intent(this, ShortcutOrganizerActivity.class));
             });
         }
+        if (manageContactPhotosButton != null) {
+            manageContactPhotosButton.setOnClickListener(view -> {
+                clearTextInputFocus();
+                startActivity(new Intent(this, ContactPhotosActivity.class));
+            });
+        }
         if (phoneSettingsButton != null) {
             phoneSettingsButton.setOnClickListener(view -> {
                 clearTextInputFocus();
@@ -211,22 +234,18 @@ public class SettingsActivity extends AppCompatActivity {
                 openKeyboardSettings();
             });
         }
-        if (accessibilitySettingsButton != null) {
-            accessibilitySettingsButton.setOnClickListener(view -> {
+        if (colorblindThemeButton != null) {
+            colorblindThemeButton.setOnClickListener(view -> {
                 clearTextInputFocus();
-                openAccessibilitySettings();
+                selectedThemeKey = LauncherThemePalette.KEY_COLORBLIND;
+                applySelectedTheme();
             });
         }
-        if (displaySettingsButton != null) {
-            displaySettingsButton.setOnClickListener(view -> {
+        if (highContrastThemeButton != null) {
+            highContrastThemeButton.setOnClickListener(view -> {
                 clearTextInputFocus();
-                openDisplaySettings();
-            });
-        }
-        if (hearingAssistButton != null) {
-            hearingAssistButton.setOnClickListener(view -> {
-                clearTextInputFocus();
-                startActivity(new Intent(this, HearingAssistActivity.class));
+                selectedThemeKey = LauncherThemePalette.KEY_BLACK;
+                applySelectedTheme();
             });
         }
     }
@@ -408,14 +427,26 @@ public class SettingsActivity extends AppCompatActivity {
         if (categoryPersonalView != null) {
             categoryPersonalView.setTextColor(palette.getPrimaryColor());
         }
+        if (categoryPersonalDivider != null) {
+            categoryPersonalDivider.setBackgroundColor(withAlpha(palette.getPrimaryColor(), 0.24f));
+        }
         if (categoryHealthView != null) {
             categoryHealthView.setTextColor(palette.getPrimaryColor());
+        }
+        if (categoryHealthDivider != null) {
+            categoryHealthDivider.setBackgroundColor(withAlpha(palette.getPrimaryColor(), 0.24f));
         }
         if (categoryAccessibilityView != null) {
             categoryAccessibilityView.setTextColor(palette.getPrimaryColor());
         }
+        if (categoryAccessibilityDivider != null) {
+            categoryAccessibilityDivider.setBackgroundColor(withAlpha(palette.getPrimaryColor(), 0.24f));
+        }
         if (categorySystemView != null) {
             categorySystemView.setTextColor(palette.getPrimaryColor());
+        }
+        if (categorySystemDivider != null) {
+            categorySystemDivider.setBackgroundColor(withAlpha(palette.getPrimaryColor(), 0.24f));
         }
         if (profileTitleView != null) {
             profileTitleView.setTextColor(palette.getHeadingColor());
@@ -434,6 +465,18 @@ public class SettingsActivity extends AppCompatActivity {
         }
         if (accessibilityDetailView != null) {
             accessibilityDetailView.setTextColor(palette.getBodyTextColor());
+        }
+        if (colorblindTitleView != null) {
+            colorblindTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (colorblindDetailView != null) {
+            colorblindDetailView.setTextColor(palette.getBodyTextColor());
+        }
+        if (highContrastTitleView != null) {
+            highContrastTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (highContrastDetailView != null) {
+            highContrastDetailView.setTextColor(palette.getBodyTextColor());
         }
         if (supportTitleView != null) {
             supportTitleView.setTextColor(palette.getHeadingColor());
@@ -454,28 +497,50 @@ public class SettingsActivity extends AppCompatActivity {
             adminHelperView.setTextColor(palette.getBodyTextColor());
         }
         if (saveButton != null) {
-            saveButton.setBackgroundTintList(ColorStateList.valueOf(palette.getPrimaryColor()));
+            clearButtonTint(saveButton);
+            saveButton.setBackground(createRoundedDrawable(
+                    palette.getPrimaryColor(),
+                    palette.getPrimaryColor(),
+                    0,
+                    0
+            ));
             saveButton.setTextColor(0xFFFFFFFF);
         }
         if (closeButton != null) {
             int closeFillColor = palette.isDarkMode()
                     ? palette.getCircleColor()
                     : palette.getSetupContactFillColor();
+            clearButtonTint(closeButton);
             closeButton.setBackground(createRoundedDrawable(
                     closeFillColor,
                     palette.getSetupContactStrokeColor(),
-                    22,
+                    0,
                     2
             ));
             closeButton.setTextColor(palette.getBodyTextColor());
         }
 
+        applyActionButtonTheme(manageContactPhotosButton, palette);
         applyActionButtonTheme(organizeShortcutsButton, palette);
         applyActionButtonTheme(phoneSettingsButton, palette);
         applyActionButtonTheme(keyboardSettingsButton, palette);
-        applyActionButtonTheme(accessibilitySettingsButton, palette);
-        applyActionButtonTheme(displaySettingsButton, palette);
-        applyActionButtonTheme(hearingAssistButton, palette);
+        applyActionButtonTheme(colorblindThemeButton, palette);
+        applyActionButtonTheme(highContrastThemeButton, palette);
+
+        if (colorblindThemeButton != null) {
+            colorblindThemeButton.setText(
+                    LauncherThemePalette.KEY_COLORBLIND.equals(selectedThemeKey)
+                            ? R.string.settings_accessibility_colorblind_active
+                            : R.string.settings_accessibility_colorblind_enable
+            );
+        }
+        if (highContrastThemeButton != null) {
+            highContrastThemeButton.setText(
+                    LauncherThemePalette.KEY_BLACK.equals(selectedThemeKey)
+                            ? R.string.settings_accessibility_high_contrast_active
+                            : R.string.settings_accessibility_high_contrast_enable
+            );
+        }
 
         applyTextFieldTheme(firstNameInput, palette);
         applyTextFieldTheme(lastNameInput, palette);
@@ -508,12 +573,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (cardView == null) {
             return;
         }
-        cardView.setBackground(createRoundedDrawable(
-                palette.getSetupFieldFillColor(),
-                palette.getSetupFieldStrokeColor(),
-                28,
-                2
-        ));
+        cardView.setBackground(null);
     }
 
     private void applyActionButtonTheme(Button button, LauncherThemePalette palette) {
@@ -521,11 +581,15 @@ public class SettingsActivity extends AppCompatActivity {
             return;
         }
 
-        int actionColor = palette.isDarkMode()
-                ? palette.getCircleColor()
-                : palette.getChipColor();
-        button.setBackgroundTintList(ColorStateList.valueOf(actionColor));
+        int actionColor = palette.getPrimaryColor();
+        clearButtonTint(button);
+        button.setBackground(createRoundedDrawable(actionColor, actionColor, 0, 0));
         button.setTextColor(0xFFFFFFFF);
+    }
+
+    private void clearButtonTint(Button button) {
+        ViewCompat.setBackgroundTintList(button, null);
+        ViewCompat.setBackgroundTintMode(button, null);
     }
 
     private void applyModeButtonTheme(
@@ -543,7 +607,7 @@ public class SettingsActivity extends AppCompatActivity {
         int strokeColor = selected
                 ? palette.getPrimaryColor()
                 : palette.getSetupContactStrokeColor();
-        button.setBackground(createRoundedDrawable(fillColor, strokeColor, 18, selected ? 0 : 2));
+        button.setBackground(createRoundedDrawable(fillColor, strokeColor, 0, selected ? 0 : 2));
         button.setTextColor(selected ? 0xFFFFFFFF : palette.getBodyTextColor());
     }
 
@@ -551,12 +615,10 @@ public class SettingsActivity extends AppCompatActivity {
         if (editText == null) {
             return;
         }
-        editText.setBackground(createRoundedDrawable(
-                palette.getSetupFieldFillColor(),
-                palette.getSetupFieldStrokeColor(),
-                18,
-                2
-        ));
+        int fieldAccentColor = palette.isDarkMode()
+                ? palette.getBodyTextColor()
+                : palette.getPrimaryColor();
+        editText.setBackgroundTintList(ColorStateList.valueOf(fieldAccentColor));
         editText.setTextColor(palette.getInputTextColor());
         editText.setHintTextColor(palette.getInputHintColor());
     }
@@ -568,10 +630,15 @@ public class SettingsActivity extends AppCompatActivity {
         textView.setBackground(createRoundedDrawable(
                 palette.getSetupContactFillColor(),
                 palette.getSetupContactStrokeColor(),
-                20,
+                0,
                 2
         ));
         textView.setTextColor(palette.getBodyTextColor());
+    }
+
+    private int withAlpha(int color, float alphaFraction) {
+        int alpha = Math.round(255f * Math.max(0f, Math.min(1f, alphaFraction)));
+        return (color & 0x00FFFFFF) | (alpha << 24);
     }
 
     private void updateColorOptionSelection() {
@@ -837,22 +904,6 @@ public class SettingsActivity extends AppCompatActivity {
             startActivity(new Intent(this, KeyboardActivationActivity.class));
         } catch (Exception exception) {
             Toast.makeText(this, R.string.keyboard_settings_unavailable, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void openAccessibilitySettings() {
-        try {
-            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-        } catch (Exception exception) {
-            Toast.makeText(this, R.string.settings_accessibility_error, Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void openDisplaySettings() {
-        try {
-            startActivity(new Intent(Settings.ACTION_DISPLAY_SETTINGS));
-        } catch (Exception exception) {
-            Toast.makeText(this, R.string.settings_accessibility_error, Toast.LENGTH_SHORT).show();
         }
     }
 

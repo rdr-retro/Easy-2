@@ -174,33 +174,53 @@ public class SeniorCalendarActivity extends AppCompatActivity {
         if (selectedDayHintView != null) {
             selectedDayHintView.setTextColor(palette.getBodyTextColor());
         }
-        styleNavigationButton(previousMonthButton);
-        styleNavigationButton(nextMonthButton);
-        styleActionButton(openDayButton, palette.getPrimaryColor(), Color.WHITE);
-        styleActionButton(addEventButton, palette.getChipColor(), Color.WHITE);
-        styleActionButton(goToTodayButton, palette.getCircleColor(), palette.getBodyTextColor());
+        styleNavigationButton(previousMonthButton, "calendar_previous_month");
+        styleNavigationButton(nextMonthButton, "calendar_next_month");
+        styleActionButton(openDayButton, "calendar_open_day", palette.getPrimaryColor());
+        styleActionButton(addEventButton, "calendar_add_event", palette.getChipColor());
+        styleActionButton(goToTodayButton, "calendar_go_today", palette.getCircleColor());
 
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);
         }
     }
 
-    private void styleNavigationButton(TextView button) {
+    private void styleNavigationButton(TextView button, String stableKey) {
         if (button == null) {
             return;
         }
 
-        button.setTextColor(Color.WHITE);
-        button.setBackground(createRoundedBackground(palette.getChipColor(), Color.TRANSPARENT, 28, 0));
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                palette.getChipColor(),
+                palette
+        );
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
+        button.setBackground(createRoundedBackground(
+                fillColor,
+                fillColor,
+                28,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
     }
 
-    private void styleActionButton(TextView button, int fillColor, int textColor) {
+    private void styleActionButton(TextView button, String stableKey, int fallbackColor) {
         if (button == null) {
             return;
         }
 
-        button.setTextColor(textColor);
-        button.setBackground(createRoundedBackground(fillColor, Color.TRANSPARENT, 24, 0));
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                fallbackColor,
+                palette
+        );
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
+        button.setBackground(createRoundedBackground(
+                fillColor,
+                fillColor,
+                24,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
     }
 
     private void renderCalendar() {
@@ -311,21 +331,31 @@ public class SeniorCalendarActivity extends AppCompatActivity {
 
         dayView.setText(String.valueOf(dayNumber));
         if (isSelected) {
-            dayView.setTextColor(Color.WHITE);
-            dayView.setBackground(createRoundedBackground(
+            int selectedFillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                    "calendar_selected_day",
                     palette.getPrimaryColor(),
-                    Color.TRANSPARENT,
+                    palette
+            );
+            dayView.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(selectedFillColor));
+            dayView.setBackground(createRoundedBackground(
+                    selectedFillColor,
+                    selectedFillColor,
                     20,
-                    0
+                    ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
             ));
         } else if (isToday) {
-            dayView.setTextColor(palette.getPrimaryColor());
+            int todayAccentColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                    "calendar_today_day",
+                    palette.getPrimaryColor(),
+                    palette
+            );
+            dayView.setTextColor(todayAccentColor);
             dayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
             dayView.setBackground(createRoundedBackground(
                     Color.TRANSPARENT,
-                    palette.getPrimaryColor(),
+                    todayAccentColor,
                     20,
-                    2
+                    ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 2
             ));
         } else {
             dayView.setTextColor(palette.getBodyTextColor());

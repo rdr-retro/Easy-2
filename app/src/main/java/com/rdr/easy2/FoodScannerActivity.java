@@ -394,7 +394,11 @@ public class FoodScannerActivity extends AppCompatActivity {
         introView.setTextColor(palette.getBodyTextColor());
         previewHintView.setTextColor(Color.WHITE);
         resultTitleView.setTextColor(palette.getHeadingColor());
-        resultValueView.setTextColor(palette.getPrimaryColor());
+        resultValueView.setTextColor(ColorblindStyleHelper.resolveSemanticAccentColor(
+                "food_scanner_result",
+                palette.getPrimaryColor(),
+                palette
+        ));
         resultDetailView.setTextColor(palette.getBodyTextColor());
         resultCodeView.setTextColor(palette.getBodyTextColor());
         resultCardView.setBackground(createRoundedBackground(
@@ -404,10 +408,8 @@ public class FoodScannerActivity extends AppCompatActivity {
                 2
         ));
 
-        scanNowButtonView.setTextColor(Color.WHITE);
-        scanNowButtonView.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_save_button));
-        closeButtonView.setTextColor(Color.WHITE);
-        closeButtonView.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_close_button));
+        styleActionButton(scanNowButtonView, "food_scanner_scan", 0xFF2EAD4E);
+        styleActionButton(closeButtonView, "food_scanner_close", 0xFFE53935);
 
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);
@@ -428,6 +430,25 @@ public class FoodScannerActivity extends AppCompatActivity {
             drawable.setStroke(dpToPx(strokeWidthDp), strokeColor);
         }
         return drawable;
+    }
+
+    private void styleActionButton(TextView button, String stableKey, int fallbackColor) {
+        if (button == null) {
+            return;
+        }
+
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                fallbackColor,
+                palette
+        );
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
+        button.setBackground(createRoundedBackground(
+                fillColor,
+                fillColor,
+                28,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
     }
 
     private Locale resolveLocale() {

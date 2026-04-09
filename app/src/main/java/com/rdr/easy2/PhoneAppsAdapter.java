@@ -1,8 +1,6 @@
 package com.rdr.easy2;
 
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -91,10 +89,35 @@ public class PhoneAppsAdapter extends RecyclerView.Adapter<PhoneAppsAdapter.Phon
 
         void bind(PhoneAppEntry phoneAppEntry, PhoneAppClickListener clickListener) {
             LauncherThemePalette palette = themePaletteOrDefault();
-            iconContainer.setBackground(createCircleBackground(palette.getCircleColor()));
-            nameView.setBackground(createRoundedBackground(palette.getChipColor(), 18));
+            String appKey = phoneAppEntry.getComponentKey();
+            int accentColor = ColorblindStyleHelper.resolvePhoneAppAccentColor(appKey, palette);
+            boolean colorblindMode = ColorblindStyleHelper.isColorblindMode(palette);
+
+            itemView.setBackground(ColorblindStyleHelper.createRoundedBackground(
+                    itemView.getContext(),
+                    ColorblindStyleHelper.resolvePhoneAppCardColor(appKey, palette),
+                    ColorblindStyleHelper.resolvePhoneAppStrokeColor(appKey, palette),
+                    28,
+                    colorblindMode ? 3 : 2
+            ));
+            iconContainer.setBackground(ColorblindStyleHelper.createRoundedBackground(
+                    itemView.getContext(),
+                    ColorblindStyleHelper.resolvePhoneAppSurfaceColor(appKey, palette),
+                    accentColor,
+                    38,
+                    colorblindMode ? 4 : 3
+            ));
+            nameView.setBackground(ColorblindStyleHelper.createRoundedBackground(
+                    itemView.getContext(),
+                    ColorblindStyleHelper.resolvePhoneAppLabelColor(appKey, palette),
+                    ColorblindStyleHelper.resolvePhoneAppStrokeColor(appKey, palette),
+                    18,
+                    colorblindMode ? 0 : 1
+            ));
+            nameView.setTextColor(ColorblindStyleHelper.resolvePhoneAppTextColor(appKey, palette));
             nameView.setText(phoneAppEntry.getLabel());
             iconView.setImageDrawable(copyDrawable(phoneAppEntry.getIcon()));
+            ColorblindStyleHelper.applyIconColor(iconView, appKey, palette);
 
             iconContainer.setOnClickListener(view -> clickListener.onPhoneAppClicked(phoneAppEntry));
             itemView.setOnClickListener(view -> clickListener.onPhoneAppClicked(phoneAppEntry));
@@ -113,29 +136,6 @@ public class PhoneAppsAdapter extends RecyclerView.Adapter<PhoneAppsAdapter.Phon
                 return drawable;
             }
             return drawable.getConstantState().newDrawable().mutate();
-        }
-
-        private GradientDrawable createCircleBackground(int fillColor) {
-            GradientDrawable drawable = new GradientDrawable();
-            drawable.setShape(GradientDrawable.OVAL);
-            drawable.setColor(fillColor);
-            return drawable;
-        }
-
-        private GradientDrawable createRoundedBackground(int fillColor, int cornerRadiusDp) {
-            GradientDrawable drawable = new GradientDrawable();
-            drawable.setShape(GradientDrawable.RECTANGLE);
-            drawable.setCornerRadius(dpToPx(cornerRadiusDp));
-            drawable.setColor(fillColor);
-            return drawable;
-        }
-
-        private float dpToPx(int dpValue) {
-            return TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    dpValue,
-                    itemView.getResources().getDisplayMetrics()
-            );
         }
     }
 }

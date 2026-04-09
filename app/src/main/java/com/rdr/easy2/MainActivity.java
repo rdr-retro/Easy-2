@@ -2,7 +2,6 @@ package com.rdr.easy2;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.ContentResolver;
 import android.content.res.ColorStateList;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -27,7 +26,6 @@ import android.app.KeyguardManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.ContactsContract;
-import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.KeyEvent;
@@ -41,9 +39,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -57,9 +52,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -73,13 +65,13 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 public class MainActivity extends AppCompatActivity {
     public static final String EXTRA_WAKE_FROM_PICKUP = "extra_wake_from_pickup";
 
     private static final int REQUEST_LOCATION_PERMISSION = 2001;
     private static final int REQUEST_CONTACTS_PERMISSION = 2002;
-    private static final String KEY_CONTACT_IMAGE_PREFIX = "contact_image_";
     private static final String KEY_LAST_WEATHER_SUMMARY = "last_weather_summary";
     private static final long REMOTE_LOCATION_SYNC_INTERVAL_MS = 15_000L;
 
@@ -106,8 +98,6 @@ public class MainActivity extends AppCompatActivity {
     private SharedPreferences preferences;
     private ExecutorService backgroundExecutor;
     private ContactsAdapter contactsAdapter;
-    private ActivityResultLauncher<Intent> pickImageLauncher;
-    private String pendingContactLookupKey;
     private boolean batteryReceiverRegistered;
     private LauncherThemePalette themePalette;
     private VolumeOverlayController volumeOverlayController;
@@ -175,16 +165,10 @@ public class MainActivity extends AppCompatActivity {
         contactsRecyclerView = findViewById(R.id.contacts_recycler);
         volumeOverlayController = new VolumeOverlayController(this);
 
-        pickImageLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                this::handlePickedContactImageResult
-        );
-
         setupShortcutSection();
         setupWeatherSection();
         setupContactsSection();
         applyThemePalette();
-        renderSavedShortcuts();
         refreshProfileHeader();
         applyLauncherInsets();
         configureWakePresentation(getIntent());
@@ -238,6 +222,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (backgroundExecutor != null) {
             backgroundExecutor.shutdownNow();
+            backgroundExecutor = null;
         }
         remoteSyncHandler = null;
         super.onDestroy();
@@ -353,7 +338,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Location locationSnapshot = new Location(location);
-        backgroundExecutor.submit(() -> {
+        submitBackgroundTask(() -> {
             String serverUrl = LauncherPreferences.getRemoteServerUrl(this);
             if (TextUtils.isEmpty(serverUrl)) {
                 return;
@@ -671,8 +656,29 @@ public class MainActivity extends AppCompatActivity {
                 new LinearLayout.LayoutParams(dpToPx(64), dpToPx(64));
         layoutParams.setMarginStart(dpToPx(16));
         shortcutView.setLayoutParams(layoutParams);
-        shortcutView.setBackgroundResource(R.drawable.bg_quick_action);
-        shortcutView.setImageDrawable(appShortcut.icon);
+        LauncherThemePalette palette = themePalette != null
+                ? themePalette
+                : LauncherThemePalette.fromPreferences(this);
+        boolean colorblindMode = ColorblindStyleHelper.isColorblindMode(palette);
+        int accentColor = ColorblindStyleHelper.resolveAppAccentColor(
+                appShortcut.componentKey,
+                palette
+        );
+
+        shortcutView.setBackground(colorblindMode
+                ? ColorblindStyleHelper.createCircleBackground(
+                        this,
+                        ColorblindStyleHelper.resolveAppSurfaceColor(appShortcut.componentKey, palette),
+                        accentColor,
+                        3
+                )
+                : getDrawable(R.drawable.bg_quick_action));
+        shortcutView.setImageDrawable(copyDrawable(appShortcut.icon));
+        if (colorblindMode) {
+            shortcutView.setColorFilter(accentColor);
+        } else {
+            shortcutView.clearColorFilter();
+        }
         shortcutView.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
         shortcutView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         shortcutView.setContentDescription(
@@ -744,9 +750,17 @@ public class MainActivity extends AppCompatActivity {
         if (contactsAdapter != null) {
             contactsAdapter.setThemePalette(themePalette);
         }
+        renderSavedShortcuts();
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(themePalette);
         }
+    }
+
+    private Drawable copyDrawable(Drawable drawable) {
+        if (drawable == null || drawable.getConstantState() == null) {
+            return drawable;
+        }
+        return drawable.getConstantState().newDrawable().mutate();
     }
 
     private List<AppShortcut> getLaunchableApps() {
@@ -944,94 +958,10 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        backgroundExecutor.submit(() -> {
-            List<ContactEntry> contacts = queryContacts();
+        submitBackgroundTask(() -> {
+            List<ContactEntry> contacts = ContactQueryHelper.queryContacts(this);
             runOnUiThread(() -> showContacts(contacts));
         });
-    }
-
-    private List<ContactEntry> queryContacts() {
-        List<ContactEntry> contacts = new ArrayList<>();
-        ContentResolver contentResolver = getContentResolver();
-        Set<String> pinnedLookupKeys = new HashSet<>(
-                LauncherPreferences.getPinnedContactLookupKeys(this)
-        );
-
-        String[] projection = new String[]{
-                ContactsContract.Contacts._ID,
-                ContactsContract.Contacts.LOOKUP_KEY,
-                ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
-                ContactsContract.Contacts.PHOTO_URI
-        };
-
-        Cursor cursor = contentResolver.query(
-                ContactsContract.Contacts.CONTENT_URI,
-                projection,
-                ContactsContract.Contacts.DISPLAY_NAME_PRIMARY + " IS NOT NULL",
-                null,
-                ContactsContract.Contacts.DISPLAY_NAME_PRIMARY + " COLLATE NOCASE ASC"
-        );
-
-        if (cursor == null) {
-            return contacts;
-        }
-
-        try {
-            int idIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID);
-            int lookupIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.LOOKUP_KEY);
-            int nameIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY);
-            int photoIndex = cursor.getColumnIndexOrThrow(ContactsContract.Contacts.PHOTO_URI);
-
-            while (cursor.moveToNext()) {
-                long id = cursor.getLong(idIndex);
-                String lookupKey = cursor.getString(lookupIndex);
-                String displayName = cursor.getString(nameIndex);
-                String photoUri = cursor.getString(photoIndex);
-
-                if (TextUtils.isEmpty(lookupKey) || TextUtils.isEmpty(displayName)) {
-                    continue;
-                }
-
-                contacts.add(new ContactEntry(
-                        id,
-                        lookupKey,
-                        displayName,
-                        !TextUtils.isEmpty(photoUri) ? Uri.parse(photoUri) : null,
-                        getSavedContactImageUri(lookupKey),
-                        pinnedLookupKeys.contains(lookupKey)
-                ));
-            }
-        } finally {
-            cursor.close();
-        }
-
-        return sortContactsWithPinnedFirst(contacts);
-    }
-
-    private List<ContactEntry> sortContactsWithPinnedFirst(List<ContactEntry> contacts) {
-        List<String> pinnedLookupKeys = LauncherPreferences.getPinnedContactLookupKeys(this);
-        if (pinnedLookupKeys.isEmpty() || contacts.isEmpty()) {
-            return contacts;
-        }
-
-        List<ContactEntry> sortedContacts = new ArrayList<>(contacts.size());
-        List<ContactEntry> remainingContacts = new ArrayList<>(contacts);
-
-        for (String pinnedLookupKey : pinnedLookupKeys) {
-            for (int i = 0; i < remainingContacts.size(); i++) {
-                ContactEntry contactEntry = remainingContacts.get(i);
-                if (!pinnedLookupKey.equals(contactEntry.getLookupKey())) {
-                    continue;
-                }
-
-                sortedContacts.add(contactEntry);
-                remainingContacts.remove(i);
-                break;
-            }
-        }
-
-        sortedContacts.addAll(remainingContacts);
-        return sortedContacts;
     }
 
     private void showContacts(List<ContactEntry> contacts) {
@@ -1145,76 +1075,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return phoneOptions;
-    }
-
-    private void handlePickedContactImageResult(ActivityResult result) {
-        if (result.getResultCode() != RESULT_OK || result.getData() == null) {
-            pendingContactLookupKey = null;
-            return;
-        }
-
-        handlePickedContactImage(result.getData().getData());
-    }
-
-    private void handlePickedContactImage(Uri imageUri) {
-        if (imageUri == null || TextUtils.isEmpty(pendingContactLookupKey)) {
-            pendingContactLookupKey = null;
-            return;
-        }
-
-        try {
-            Uri savedImageUri = copyContactImageToInternalStorage(imageUri, pendingContactLookupKey);
-            saveContactImageUri(pendingContactLookupKey, savedImageUri);
-            if (contactsAdapter != null) {
-                contactsAdapter.updateContactPhoto(pendingContactLookupKey, savedImageUri);
-            }
-        } catch (Exception ignored) {
-            Toast.makeText(this, R.string.contacts_pick_photo_error, Toast.LENGTH_SHORT).show();
-        }
-
-        pendingContactLookupKey = null;
-    }
-
-    private Uri copyContactImageToInternalStorage(Uri sourceUri, String lookupKey) throws Exception {
-        File directory = new File(getFilesDir(), "contact_photos");
-        if (!directory.exists() && !directory.mkdirs()) {
-            throw new IllegalStateException("Could not create contacts photo directory");
-        }
-
-        String safeName = lookupKey.replaceAll("[^a-zA-Z0-9._-]", "_");
-        File destinationFile = new File(directory, safeName + ".jpg");
-
-        try (
-                InputStream inputStream = getContentResolver().openInputStream(sourceUri);
-                FileOutputStream outputStream = new FileOutputStream(destinationFile, false)
-        ) {
-            if (inputStream == null) {
-                throw new IllegalStateException("Could not read selected image");
-            }
-
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
-            }
-            outputStream.flush();
-        }
-
-        return Uri.fromFile(destinationFile);
-    }
-
-    private Uri getSavedContactImageUri(String lookupKey) {
-        String storedUri = preferences.getString(KEY_CONTACT_IMAGE_PREFIX + lookupKey, null);
-        if (TextUtils.isEmpty(storedUri)) {
-            return null;
-        }
-        return Uri.parse(storedUri);
-    }
-
-    private void saveContactImageUri(String lookupKey, Uri imageUri) {
-        preferences.edit()
-                .putString(KEY_CONTACT_IMAGE_PREFIX + lookupKey, imageUri.toString())
-                .apply();
     }
 
     private void showWeatherPermissionState() {
@@ -1343,7 +1203,7 @@ public class MainActivity extends AppCompatActivity {
         double latitude = location.getLatitude();
         double longitude = location.getLongitude();
 
-        backgroundExecutor.submit(() -> {
+        submitBackgroundTask(() -> {
             try {
                 String locationLabel = getLocationLabel(latitude, longitude);
                 WeatherInfo weatherInfo = fetchWeather(latitude, longitude, locationLabel);
@@ -1356,6 +1216,22 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> showCachedWeatherOrError(getString(R.string.weather_unavailable)));
             }
         });
+    }
+
+    private boolean submitBackgroundTask(Runnable task) {
+        if (task == null || backgroundExecutor == null) {
+            return false;
+        }
+        if (backgroundExecutor.isShutdown() || backgroundExecutor.isTerminated()) {
+            return false;
+        }
+
+        try {
+            backgroundExecutor.submit(task);
+            return true;
+        } catch (RejectedExecutionException ignored) {
+            return false;
+        }
     }
 
     private WeatherInfo fetchWeather(double latitude, double longitude, String locationLabel)

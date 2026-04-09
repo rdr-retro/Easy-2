@@ -103,23 +103,59 @@ public class AlarmActivity extends AppCompatActivity {
                     24
             ));
         }
-        styleActionButton(openSystemButton, palette.getPrimaryColor());
-        styleActionButton(createButton, palette.getChipColor());
-        styleActionButton(timer10Button, palette.getCircleColor());
-        styleActionButton(timer30Button, blend(palette.getPrimaryColor(), palette.getCircleColor(), 0.4f));
+        styleActionButton(
+                openSystemButton,
+                "alarm_open_system",
+                palette.getPrimaryColor(),
+                palette
+        );
+        styleActionButton(
+                createButton,
+                "alarm_create",
+                palette.getChipColor(),
+                palette
+        );
+        styleActionButton(
+                timer10Button,
+                "alarm_timer_10",
+                palette.getCircleColor(),
+                palette
+        );
+        styleActionButton(
+                timer30Button,
+                "alarm_timer_30",
+                blend(palette.getPrimaryColor(), palette.getCircleColor(), 0.4f),
+                palette
+        );
 
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);
         }
     }
 
-    private void styleActionButton(TextView button, int fillColor) {
+    private void styleActionButton(
+            TextView button,
+            String stableKey,
+            int fallbackColor,
+            LauncherThemePalette palette
+    ) {
         if (button == null) {
             return;
         }
 
-        button.setTextColor(Color.WHITE);
-        button.setBackground(createRoundedBackground(fillColor, 26));
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                fallbackColor,
+                palette
+        );
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
+        button.setBackground(ColorblindStyleHelper.createRoundedBackground(
+                this,
+                fillColor,
+                fillColor,
+                26,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
     }
 
     private void updateCurrentTime() {

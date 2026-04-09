@@ -335,22 +335,37 @@ public class CallActivity extends AppCompatActivity implements CallRepository.Li
             callStateView.setTextColor(palette.getBodyTextColor());
         }
 
-        stylePillButton(answerButton, 0xFF2EAD4E);
-        stylePillButton(muteButton, palette.getChipColor());
-        stylePillButton(speakerButton, palette.getChipColor());
-        stylePillButton(endCallButton, 0xFFD84343);
+        stylePillButton(answerButton, "call_answer", 0xFF2EAD4E, palette);
+        stylePillButton(muteButton, "call_mute", palette.getChipColor(), palette);
+        stylePillButton(speakerButton, "call_speaker", palette.getChipColor(), palette);
+        stylePillButton(endCallButton, "call_end", 0xFFD84343, palette);
 
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);
         }
     }
 
-    private void stylePillButton(TextView button, int fillColor) {
+    private void stylePillButton(
+            TextView button,
+            String stableKey,
+            int fallbackColor,
+            LauncherThemePalette palette
+    ) {
         if (button == null) {
             return;
         }
-        button.setBackground(createRoundedBackground(fillColor, fillColor, 24, 0));
-        button.setTextColor(Color.WHITE);
+        int fillColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                stableKey,
+                fallbackColor,
+                palette
+        );
+        button.setBackground(createRoundedBackground(
+                fillColor,
+                fillColor,
+                24,
+                ColorblindStyleHelper.isColorblindMode(palette) ? 3 : 0
+        ));
+        button.setTextColor(ColorblindStyleHelper.resolveTextColorForBackground(fillColor));
     }
 
     private GradientDrawable createRoundedBackground(

@@ -71,17 +71,23 @@ public class VolumeOverlayController {
             return;
         }
 
+        int accentColor = ColorblindStyleHelper.resolveSemanticAccentColor(
+                "volume_overlay",
+                palette.getPrimaryColor(),
+                palette
+        );
+
         if (progressFill != null) {
-            progressFill.setBackground(createRoundedBackground(palette.getPrimaryColor(), 18));
+            progressFill.setBackground(createRoundedBackground(accentColor, 18));
         }
         if (volumeIconView != null) {
-            volumeIconView.setImageTintList(ColorStateList.valueOf(palette.getPrimaryColor()));
+            volumeIconView.setImageTintList(ColorStateList.valueOf(accentColor));
         }
         if (volumeValueView != null) {
-            volumeValueView.setTextColor(palette.getPrimaryColor());
+            volumeValueView.setTextColor(accentColor);
         }
         if (volumeLabelView != null) {
-            volumeLabelView.setTextColor(palette.getPrimaryColor());
+            volumeLabelView.setTextColor(accentColor);
         }
         if (overlayPill != null) {
             overlayPill.setBackground(createRoundedBackground(0xF7FFFFFF, 56));

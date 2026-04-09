@@ -70,6 +70,7 @@ public class PhoneAppsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        applyThemePalette();
         loadPhoneApps();
     }
 
@@ -134,10 +135,6 @@ public class PhoneAppsActivity extends AppCompatActivity {
             }
 
             String packageName = resolveInfo.activityInfo.packageName;
-            if (getPackageName().equals(packageName)) {
-                continue;
-            }
-
             ComponentName componentName =
                     new ComponentName(packageName, resolveInfo.activityInfo.name);
             Intent launchIntent = new Intent(Intent.ACTION_MAIN);
@@ -156,10 +153,20 @@ public class PhoneAppsActivity extends AppCompatActivity {
 
         Collections.sort(
                 phoneApps,
-                Comparator.comparing(phoneApp ->
-                        phoneApp.getLabel().toLowerCase(Locale.getDefault()))
+                Comparator
+                        .comparing((PhoneAppEntry phoneApp) ->
+                                !getPackageName().equals(getPackageNameFromComponent(phoneApp)))
+                        .thenComparing(phoneApp ->
+                                phoneApp.getLabel().toLowerCase(Locale.getDefault()))
         );
         return phoneApps;
+    }
+
+    private String getPackageNameFromComponent(PhoneAppEntry phoneAppEntry) {
+        ComponentName componentName = ComponentName.unflattenFromString(
+                phoneAppEntry.getComponentKey()
+        );
+        return componentName != null ? componentName.getPackageName() : "";
     }
 
     private void launchPhoneApp(PhoneAppEntry phoneAppEntry) {
