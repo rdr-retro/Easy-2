@@ -42,8 +42,10 @@ public class SetupActivity extends AppCompatActivity {
     private EditText lastNameInput;
     private EditText ageInput;
     private EditText medicalInfoInput;
+    private EditText serverUrlInput;
     private View setupRootView;
     private View setupCardView;
+    private View clientContactsContainer;
     private ScrollView setupScrollView;
     private TextView titleView;
     private TextView subtitleView;
@@ -53,6 +55,12 @@ public class SetupActivity extends AppCompatActivity {
     private TextView optionalChipView;
     private TextView contactsHelperView;
     private TextView supportTitleView;
+    private TextView roleTitleView;
+    private TextView roleDetailView;
+    private TextView modeClientButton;
+    private TextView modeAdminButton;
+    private TextView serverHelperView;
+    private TextView adminHelperView;
     private Button backButton;
     private Button saveButton;
     private Button organizeShortcutsButton;
@@ -68,6 +76,7 @@ public class SetupActivity extends AppCompatActivity {
     private int pendingContactIndex = -1;
     private int currentStep = STEP_BASIC;
     private String selectedThemeKey = LauncherThemePalette.KEY_GREEN;
+    private String selectedUserMode = LauncherPreferences.USER_MODE_CLIENT;
     private boolean setupAlreadyComplete;
 
     private ActivityResultLauncher<Intent> contactPickerLauncher;
@@ -91,15 +100,23 @@ public class SetupActivity extends AppCompatActivity {
         optionalChipView = findViewById(R.id.setup_optional_chip_view);
         contactsHelperView = findViewById(R.id.setup_contacts_helper_view);
         supportTitleView = findViewById(R.id.setup_support_title_view);
+        roleTitleView = findViewById(R.id.setup_role_title_view);
+        roleDetailView = findViewById(R.id.setup_role_detail_view);
+        modeClientButton = findViewById(R.id.setup_mode_client_button);
+        modeAdminButton = findViewById(R.id.setup_mode_admin_button);
+        serverHelperView = findViewById(R.id.setup_server_helper_view);
+        adminHelperView = findViewById(R.id.setup_admin_helper_view);
         firstNameInput = findViewById(R.id.input_first_name);
         lastNameInput = findViewById(R.id.input_last_name);
         ageInput = findViewById(R.id.input_age);
         medicalInfoInput = findViewById(R.id.input_medical_info);
+        serverUrlInput = findViewById(R.id.input_server_url);
         backButton = findViewById(R.id.setup_back_button);
         saveButton = findViewById(R.id.save_setup_button);
         organizeShortcutsButton = findViewById(R.id.organize_shortcuts_button);
         phoneSettingsButton = findViewById(R.id.open_phone_settings_button);
         keyboardSettingsButton = findViewById(R.id.open_keyboard_settings_button);
+        clientContactsContainer = findViewById(R.id.setup_client_contacts_container);
 
         progressSegments[0] = findViewById(R.id.setup_progress_0);
         progressSegments[1] = findViewById(R.id.setup_progress_1);
@@ -136,6 +153,7 @@ public class SetupActivity extends AppCompatActivity {
         keyboardController.attach(lastNameInput);
         keyboardController.attach(ageInput);
         keyboardController.attach(medicalInfoInput);
+        keyboardController.attach(serverUrlInput);
 
         for (int i = 0; i < contactSlots.length; i++) {
             selectedContacts.add(null);
@@ -155,6 +173,7 @@ public class SetupActivity extends AppCompatActivity {
 
         bindContactSlots();
         bindColorOptions();
+        bindModeButtons();
         preloadExistingValues();
         showStep(STEP_BASIC);
 
@@ -197,6 +216,26 @@ public class SetupActivity extends AppCompatActivity {
         bindColorOption(5, LauncherThemePalette.KEY_BLACK, R.string.theme_black);
     }
 
+    private void bindModeButtons() {
+        if (modeClientButton != null) {
+            modeClientButton.setOnClickListener(view -> {
+                selectedUserMode = LauncherPreferences.USER_MODE_CLIENT;
+                clearTextInputFocus();
+                refreshRoleUi();
+                applySelectedTheme();
+            });
+        }
+
+        if (modeAdminButton != null) {
+            modeAdminButton.setOnClickListener(view -> {
+                selectedUserMode = LauncherPreferences.USER_MODE_ADMIN;
+                clearTextInputFocus();
+                refreshRoleUi();
+                applySelectedTheme();
+            });
+        }
+    }
+
     private void bindColorOption(int index, String themeKey, int descriptionRes) {
         TextView colorOption = colorOptions[index];
         if (colorOption == null) {
@@ -216,13 +255,17 @@ public class SetupActivity extends AppCompatActivity {
         lastNameInput.setText(LauncherPreferences.getLastName(this));
         ageInput.setText(LauncherPreferences.getAge(this));
         medicalInfoInput.setText(LauncherPreferences.getMedicalInfo(this));
+        serverUrlInput.setText(LauncherPreferences.getRemoteServerUrl(this));
         selectedThemeKey = LauncherPreferences.getThemeColorKey(this);
+        selectedUserMode = LauncherPreferences.getUserMode(this);
 
         List<PinnedContact> pinnedContacts = LauncherPreferences.getPinnedContacts(this);
         for (int i = 0; i < pinnedContacts.size() && i < selectedContacts.size(); i++) {
             selectedContacts.set(i, pinnedContacts.get(i));
             updateContactSlotText(i);
         }
+
+        refreshRoleUi();
     }
 
     private void showStep(int step) {
@@ -251,18 +294,33 @@ public class SetupActivity extends AppCompatActivity {
                         : R.string.setup_next
         );
 
+        refreshRoleUi();
         applySelectedTheme();
         scrollToTop();
     }
 
+    private void refreshRoleUi() {
+        boolean adminMode = LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode);
+
+        if (clientContactsContainer != null) {
+            clientContactsContainer.setVisibility(adminMode ? View.GONE : View.VISIBLE);
+        }
+        if (adminHelperView != null) {
+            adminHelperView.setVisibility(adminMode ? View.VISIBLE : View.GONE);
+        }
+    }
+
     private int getStepTitleRes(int step) {
+        boolean adminMode = LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode);
         switch (step) {
             case STEP_THEME:
                 return R.string.setup_step_theme_title;
             case STEP_MEDICAL:
                 return R.string.setup_step_medical_title;
             case STEP_CONTACTS:
-                return R.string.setup_step_contacts_title;
+                return adminMode
+                        ? R.string.setup_step_admin_title
+                        : R.string.setup_step_contacts_title;
             case STEP_BASIC:
             default:
                 return R.string.setup_step_basic_title;
@@ -270,13 +328,16 @@ public class SetupActivity extends AppCompatActivity {
     }
 
     private int getStepDetailRes(int step) {
+        boolean adminMode = LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode);
         switch (step) {
             case STEP_THEME:
                 return R.string.setup_step_theme_detail;
             case STEP_MEDICAL:
                 return R.string.setup_step_medical_detail;
             case STEP_CONTACTS:
-                return R.string.setup_step_contacts_detail;
+                return adminMode
+                        ? R.string.setup_step_admin_detail
+                        : R.string.setup_step_contacts_detail;
             case STEP_BASIC:
             default:
                 return R.string.setup_step_basic_detail;
@@ -312,16 +373,33 @@ public class SetupActivity extends AppCompatActivity {
     }
 
     private boolean validateBasicInfo(boolean showErrors) {
+        boolean adminMode = LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode);
         String firstName = firstNameInput.getText().toString().trim();
         String lastName = lastNameInput.getText().toString().trim();
         String age = ageInput.getText().toString().trim();
+        String serverUrl = LauncherPreferences.sanitizeServerUrl(
+                serverUrlInput.getText().toString()
+        );
 
-        if (TextUtils.isEmpty(firstName) || TextUtils.isEmpty(lastName)) {
+        if (!adminMode && (TextUtils.isEmpty(firstName) || TextUtils.isEmpty(lastName))) {
             if (showErrors) {
                 Toast.makeText(this, R.string.setup_validation_name, Toast.LENGTH_SHORT).show();
                 focusInput(TextUtils.isEmpty(firstName) ? firstNameInput : lastNameInput);
             }
             return false;
+        }
+
+        if (adminMode && TextUtils.isEmpty(serverUrl)) {
+            if (showErrors) {
+                Toast.makeText(this, R.string.setup_validation_server_admin, Toast.LENGTH_SHORT)
+                        .show();
+                focusInput(serverUrlInput);
+            }
+            return false;
+        }
+
+        if (adminMode) {
+            return true;
         }
 
         if (TextUtils.isEmpty(age)) {
@@ -353,6 +431,10 @@ public class SetupActivity extends AppCompatActivity {
     }
 
     private boolean validateContacts(boolean showErrors) {
+        if (LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode)) {
+            return true;
+        }
+
         for (PinnedContact selectedContact : selectedContacts) {
             if (selectedContact == null) {
                 if (showErrors) {
@@ -409,6 +491,18 @@ public class SetupActivity extends AppCompatActivity {
         if (supportTitleView != null) {
             supportTitleView.setTextColor(palette.getHeadingColor());
         }
+        if (roleTitleView != null) {
+            roleTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (roleDetailView != null) {
+            roleDetailView.setTextColor(palette.getBodyTextColor());
+        }
+        if (serverHelperView != null) {
+            serverHelperView.setTextColor(palette.getBodyTextColor());
+        }
+        if (adminHelperView != null) {
+            adminHelperView.setTextColor(palette.getBodyTextColor());
+        }
         if (saveButton != null) {
             saveButton.setBackgroundTintList(ColorStateList.valueOf(palette.getPrimaryColor()));
             saveButton.setTextColor(0xFFFFFFFF);
@@ -434,9 +528,13 @@ public class SetupActivity extends AppCompatActivity {
         applyTextFieldTheme(lastNameInput, palette);
         applyTextFieldTheme(ageInput, palette);
         applyTextFieldTheme(medicalInfoInput, palette);
+        applyTextFieldTheme(serverUrlInput, palette);
         if (keyboardController != null) {
             keyboardController.applyTheme(palette);
         }
+
+        applyModeButtonTheme(modeClientButton, palette, !LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode));
+        applyModeButtonTheme(modeAdminButton, palette, LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode));
 
         for (TextView contactSlot : contactSlots) {
             applyContactSlotTheme(contactSlot, palette);
@@ -456,6 +554,25 @@ public class SetupActivity extends AppCompatActivity {
                 : palette.getChipColor();
         button.setBackgroundTintList(ColorStateList.valueOf(actionColor));
         button.setTextColor(0xFFFFFFFF);
+    }
+
+    private void applyModeButtonTheme(
+            TextView button,
+            LauncherThemePalette palette,
+            boolean selected
+    ) {
+        if (button == null) {
+            return;
+        }
+
+        int fillColor = selected
+                ? palette.getPrimaryColor()
+                : palette.getSetupContactFillColor();
+        int strokeColor = selected
+                ? palette.getPrimaryColor()
+                : palette.getSetupContactStrokeColor();
+        button.setBackground(createRoundedDrawable(fillColor, strokeColor, 18, selected ? 0 : 2));
+        button.setTextColor(selected ? 0xFFFFFFFF : palette.getBodyTextColor());
     }
 
     private void updateProgressIndicator(LauncherThemePalette palette) {
@@ -712,6 +829,9 @@ public class SetupActivity extends AppCompatActivity {
         String lastName = lastNameInput.getText().toString().trim();
         String age = ageInput.getText().toString().trim();
         String medicalInfo = medicalInfoInput.getText().toString().trim();
+        String serverUrl = LauncherPreferences.sanitizeServerUrl(
+                serverUrlInput.getText().toString()
+        );
 
         List<PinnedContact> pinnedContacts = new ArrayList<>();
         for (PinnedContact selectedContact : selectedContacts) {
@@ -727,8 +847,16 @@ public class SetupActivity extends AppCompatActivity {
                 age,
                 selectedThemeKey,
                 medicalInfo,
+                selectedUserMode,
+                serverUrl,
                 pinnedContacts
         );
+
+        if (LauncherPreferences.USER_MODE_CLIENT.equals(selectedUserMode)
+                && !TextUtils.isEmpty(serverUrl)) {
+            Toast.makeText(this, R.string.setup_registration_started, Toast.LENGTH_SHORT).show();
+            registerClientInBackground(serverUrl, firstName, lastName, age);
+        }
 
         Intent launcherIntent = new Intent(this, MainActivity.class);
         launcherIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -768,6 +896,9 @@ public class SetupActivity extends AppCompatActivity {
         if (medicalInfoInput != null) {
             medicalInfoInput.clearFocus();
         }
+        if (serverUrlInput != null) {
+            serverUrlInput.clearFocus();
+        }
     }
 
     @Override
@@ -804,5 +935,57 @@ public class SetupActivity extends AppCompatActivity {
     private boolean hasContactsPermission() {
         return checkSelfPermission(Manifest.permission.READ_CONTACTS)
                 == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void registerClientInBackground(
+            String serverUrl,
+            String firstName,
+            String lastName,
+            String age
+    ) {
+        new Thread(() -> {
+            try {
+                String authToken = LauncherPreferences.ensureRemoteAuthToken(this);
+                StringBuilder displayNameBuilder = new StringBuilder();
+                if (!TextUtils.isEmpty(firstName)) {
+                    displayNameBuilder.append(firstName.trim());
+                }
+                if (!TextUtils.isEmpty(lastName)) {
+                    if (displayNameBuilder.length() > 0) {
+                        displayNameBuilder.append(' ');
+                    }
+                    displayNameBuilder.append(lastName.trim());
+                }
+
+                String displayName = displayNameBuilder.length() > 0
+                        ? displayNameBuilder.toString()
+                        : getString(
+                                R.string.remote_default_client_name,
+                                authToken.substring(0, Math.min(6, authToken.length()))
+                        );
+
+                RemoteServerClient.RegistrationResult result = RemoteServerClient.registerClient(
+                        serverUrl,
+                        authToken,
+                        android.os.Build.MODEL,
+                        displayName,
+                        age
+                );
+                if (!TextUtils.isEmpty(result.clientId)) {
+                    LauncherPreferences.saveRemoteRegistration(this, result.clientId);
+                }
+                runOnUiThread(() -> Toast.makeText(
+                        this,
+                        R.string.setup_registration_success,
+                        Toast.LENGTH_SHORT
+                ).show());
+            } catch (Exception exception) {
+                runOnUiThread(() -> Toast.makeText(
+                        this,
+                        R.string.setup_registration_failed,
+                        Toast.LENGTH_SHORT
+                ).show());
+            }
+        }).start();
     }
 }

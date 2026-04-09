@@ -24,6 +24,8 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.app.KeyguardManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.ContactsContract;
 import android.provider.MediaStore;
 import android.text.TextUtils;
@@ -79,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CONTACTS_PERMISSION = 2002;
     private static final String KEY_CONTACT_IMAGE_PREFIX = "contact_image_";
     private static final String KEY_LAST_WEATHER_SUMMARY = "last_weather_summary";
+    private static final long REMOTE_LOCATION_SYNC_INTERVAL_MS = 15_000L;
 
     private TextView batteryTextView;
     private TextView chargingTextView;
@@ -107,6 +110,18 @@ public class MainActivity extends AppCompatActivity {
     private boolean batteryReceiverRegistered;
     private LauncherThemePalette themePalette;
     private VolumeOverlayController volumeOverlayController;
+    private Handler remoteSyncHandler;
+    private final Runnable remoteSyncRunnable = new Runnable() {
+        @Override
+        public void run() {
+            syncLocationWithServer();
+            if (remoteSyncHandler != null
+                    && LauncherPreferences.isClientMode(MainActivity.this)
+                    && LauncherPreferences.hasRemoteServerUrl(MainActivity.this)) {
+                remoteSyncHandler.postDelayed(this, REMOTE_LOCATION_SYNC_INTERVAL_MS);
+            }
+        }
+    };
 
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
         @Override
@@ -124,11 +139,18 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        if (LauncherPreferences.isAdminMode(this)) {
+            startActivity(new Intent(this, AdminActivity.class));
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_main);
 
         preferences = LauncherPreferences.getPreferences(this);
         themePalette = LauncherThemePalette.fromPreferences(this);
         backgroundExecutor = Executors.newSingleThreadExecutor();
+        remoteSyncHandler = new Handler(Looper.getMainLooper());
 
         batteryTextView = findViewById(R.id.battery_text);
         chargingTextView = findViewById(R.id.charging_text);
@@ -182,6 +204,10 @@ public class MainActivity extends AppCompatActivity {
         refreshProfileHeader();
         refreshWeatherIfPossible();
         refreshContactsIfPossible();
+        if (LauncherPreferences.hasRemoteServerUrl(this) && !hasLocationPermission()) {
+            requestLocationPermission();
+        }
+        scheduleRemoteLocationSync();
     }
 
     @Override
@@ -194,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        stopRemoteLocationSync();
         if (batteryReceiverRegistered) {
             unregisterReceiver(batteryReceiver);
             batteryReceiverRegistered = false;
@@ -203,12 +230,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        stopRemoteLocationSync();
         if (volumeOverlayController != null) {
             volumeOverlayController.release();
         }
         if (backgroundExecutor != null) {
             backgroundExecutor.shutdownNow();
         }
+        remoteSyncHandler = null;
         super.onDestroy();
     }
 
@@ -264,6 +293,141 @@ public class MainActivity extends AppCompatActivity {
 
     private void ensurePickupServiceRunning() {
         PickupMonitorService.start(this);
+    }
+
+    private void scheduleRemoteLocationSync() {
+        if (remoteSyncHandler == null
+                || !LauncherPreferences.isClientMode(this)
+                || !LauncherPreferences.hasRemoteServerUrl(this)) {
+            return;
+        }
+
+        remoteSyncHandler.removeCallbacks(remoteSyncRunnable);
+        remoteSyncHandler.post(remoteSyncRunnable);
+    }
+
+    private void stopRemoteLocationSync() {
+        if (remoteSyncHandler != null) {
+            remoteSyncHandler.removeCallbacks(remoteSyncRunnable);
+        }
+    }
+
+    private void syncLocationWithServer() {
+        if (!LauncherPreferences.isClientMode(this)
+                || !LauncherPreferences.hasRemoteServerUrl(this)
+                || !hasLocationPermission()
+                || backgroundExecutor == null) {
+            return;
+        }
+
+        LocationManager locationManager = getSystemService(LocationManager.class);
+        if (locationManager == null) {
+            return;
+        }
+
+        Location lastKnownLocation = getBestLastKnownLocation(locationManager);
+        if (lastKnownLocation != null) {
+            submitLocationToServer(lastKnownLocation);
+        }
+
+        String provider = getBestLocationProvider(locationManager);
+        if (TextUtils.isEmpty(provider)) {
+            return;
+        }
+
+        try {
+            locationManager.getCurrentLocation(provider, null, getMainExecutor(), location -> {
+                if (location != null) {
+                    submitLocationToServer(location);
+                }
+            });
+        } catch (SecurityException ignored) {
+        }
+    }
+
+    private void submitLocationToServer(Location location) {
+        if (location == null || backgroundExecutor == null) {
+            return;
+        }
+
+        Location locationSnapshot = new Location(location);
+        backgroundExecutor.submit(() -> {
+            String serverUrl = LauncherPreferences.getRemoteServerUrl(this);
+            if (TextUtils.isEmpty(serverUrl)) {
+                return;
+            }
+
+            try {
+                String authToken = LauncherPreferences.ensureRemoteAuthToken(this);
+                String clientId = LauncherPreferences.getRemoteClientId(this);
+
+                if (TextUtils.isEmpty(clientId)) {
+                    String displayName = LauncherPreferences.getDisplayName(this);
+                    if (TextUtils.isEmpty(displayName)) {
+                        displayName = getString(
+                                R.string.remote_default_client_name,
+                                authToken.substring(0, Math.min(6, authToken.length()))
+                        );
+                    }
+
+                    RemoteServerClient.RegistrationResult registrationResult =
+                            RemoteServerClient.registerClient(
+                                    serverUrl,
+                                    authToken,
+                                    Build.MODEL,
+                                    displayName,
+                                    LauncherPreferences.getAge(this)
+                            );
+                    clientId = registrationResult.clientId;
+                    if (TextUtils.isEmpty(clientId)) {
+                        return;
+                    }
+                    LauncherPreferences.saveRemoteRegistration(this, clientId);
+                }
+
+                BatterySnapshot batterySnapshot = readBatterySnapshot();
+                RemoteServerClient.pushLocation(
+                        serverUrl,
+                        clientId,
+                        authToken,
+                        locationSnapshot,
+                        batterySnapshot.percentage,
+                        batterySnapshot.isCharging
+                );
+                LauncherPreferences.markRemoteSync(this);
+            } catch (RemoteServerClient.HttpStatusException exception) {
+                if (exception.statusCode == 401
+                        || exception.statusCode == 403
+                        || exception.statusCode == 404) {
+                    LauncherPreferences.clearRemoteRegistration(this);
+                }
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    private BatterySnapshot readBatterySnapshot() {
+        Intent batteryIntent = registerReceiver(
+                null,
+                new IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        );
+        if (batteryIntent == null) {
+            return new BatterySnapshot(-1, false);
+        }
+
+        int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+        int percentage = -1;
+        if (level >= 0 && scale > 0) {
+            percentage = Math.round((level * 100f) / scale);
+        }
+
+        int status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+        boolean isCharging =
+                status == BatteryManager.BATTERY_STATUS_CHARGING
+                        || status == BatteryManager.BATTERY_STATUS_FULL;
+
+        return new BatterySnapshot(percentage, isCharging);
     }
 
     private void configureWakePresentation(Intent intent) {
@@ -729,6 +893,7 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_LOCATION_PERMISSION) {
             if (hasLocationPermission()) {
                 fetchWeatherForCurrentLocation();
+                scheduleRemoteLocationSync();
             } else {
                 showWeatherPermissionState();
             }
@@ -1365,6 +1530,16 @@ public class MainActivity extends AppCompatActivity {
 
         private WeatherInfo(String summary) {
             this.summary = summary;
+        }
+    }
+
+    private static final class BatterySnapshot {
+        private final int percentage;
+        private final boolean isCharging;
+
+        private BatterySnapshot(int percentage, boolean isCharging) {
+            this.percentage = percentage;
+            this.isCharging = isCharging;
         }
     }
 
