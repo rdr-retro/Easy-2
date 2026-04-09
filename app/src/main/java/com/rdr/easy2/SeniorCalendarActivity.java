@@ -1,10 +1,13 @@
 package com.rdr.easy2;
 
+import android.content.ContentUris;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.LocaleList;
+import android.provider.CalendarContract;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -12,6 +15,7 @@ import android.view.View;
 import android.view.Window;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
@@ -21,6 +25,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.time.format.TextStyle;
@@ -34,12 +39,19 @@ public class SeniorCalendarActivity extends AppCompatActivity {
     private Locale locale;
     private LauncherThemePalette palette;
     private YearMonth displayedMonth;
+    private LocalDate selectedDate;
 
     private TextView titleView;
     private TextView todayView;
     private TextView monthView;
     private TextView previousMonthButton;
     private TextView nextMonthButton;
+    private TextView selectedDayTitleView;
+    private TextView selectedDayValueView;
+    private TextView selectedDayHintView;
+    private TextView openDayButton;
+    private TextView addEventButton;
+    private TextView goToTodayButton;
     private LinearLayout weekdaysRow;
     private LinearLayout calendarWeeksContainer;
 
@@ -50,15 +62,25 @@ public class SeniorCalendarActivity extends AppCompatActivity {
         volumeOverlayController = new VolumeOverlayController(this);
         locale = resolveLocale();
         displayedMonth = YearMonth.now();
+        selectedDate = LocalDate.now();
 
         bindViews();
         findViewById(R.id.close_calendar_button).setOnClickListener(view -> finish());
         previousMonthButton.setOnClickListener(view -> {
             displayedMonth = displayedMonth.minusMonths(1);
+            syncSelectionWithDisplayedMonth();
             renderCalendar();
         });
         nextMonthButton.setOnClickListener(view -> {
             displayedMonth = displayedMonth.plusMonths(1);
+            syncSelectionWithDisplayedMonth();
+            renderCalendar();
+        });
+        openDayButton.setOnClickListener(view -> openSelectedDateInCalendar());
+        addEventButton.setOnClickListener(view -> createEventForSelectedDate());
+        goToTodayButton.setOnClickListener(view -> {
+            selectedDate = LocalDate.now();
+            displayedMonth = YearMonth.from(selectedDate);
             renderCalendar();
         });
 
@@ -97,6 +119,12 @@ public class SeniorCalendarActivity extends AppCompatActivity {
         monthView = findViewById(R.id.senior_calendar_month_view);
         previousMonthButton = findViewById(R.id.senior_calendar_previous_button);
         nextMonthButton = findViewById(R.id.senior_calendar_next_button);
+        selectedDayTitleView = findViewById(R.id.senior_calendar_selected_day_title);
+        selectedDayValueView = findViewById(R.id.senior_calendar_selected_day_value);
+        selectedDayHintView = findViewById(R.id.senior_calendar_selected_day_hint);
+        openDayButton = findViewById(R.id.senior_calendar_open_button);
+        addEventButton = findViewById(R.id.senior_calendar_add_event_button);
+        goToTodayButton = findViewById(R.id.senior_calendar_go_today_button);
         weekdaysRow = findViewById(R.id.senior_calendar_weekdays_row);
         calendarWeeksContainer = findViewById(R.id.senior_calendar_weeks_container);
     }
@@ -137,8 +165,20 @@ public class SeniorCalendarActivity extends AppCompatActivity {
         if (monthView != null) {
             monthView.setTextColor(palette.getHeadingColor());
         }
+        if (selectedDayTitleView != null) {
+            selectedDayTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (selectedDayValueView != null) {
+            selectedDayValueView.setTextColor(palette.getHeadingColor());
+        }
+        if (selectedDayHintView != null) {
+            selectedDayHintView.setTextColor(palette.getBodyTextColor());
+        }
         styleNavigationButton(previousMonthButton);
         styleNavigationButton(nextMonthButton);
+        styleActionButton(openDayButton, palette.getPrimaryColor(), Color.WHITE);
+        styleActionButton(addEventButton, palette.getChipColor(), Color.WHITE);
+        styleActionButton(goToTodayButton, palette.getCircleColor(), palette.getBodyTextColor());
 
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);
@@ -152,6 +192,15 @@ public class SeniorCalendarActivity extends AppCompatActivity {
 
         button.setTextColor(Color.WHITE);
         button.setBackground(createRoundedBackground(palette.getChipColor(), Color.TRANSPARENT, 28, 0));
+    }
+
+    private void styleActionButton(TextView button, int fillColor, int textColor) {
+        if (button == null) {
+            return;
+        }
+
+        button.setTextColor(textColor);
+        button.setBackground(createRoundedBackground(fillColor, Color.TRANSPARENT, 24, 0));
     }
 
     private void renderCalendar() {
@@ -168,6 +217,7 @@ public class SeniorCalendarActivity extends AppCompatActivity {
                 DateTimeFormatter.ofPattern("LLLL yyyy", locale)
         )));
 
+        updateSelectedDayPanel();
         renderWeekdays();
         renderWeeks(today);
     }
@@ -216,12 +266,16 @@ public class SeniorCalendarActivity extends AppCompatActivity {
                 boolean belongsToDisplayedMonth =
                         slot >= leadingEmptyDays && dayNumber <= displayedMonth.lengthOfMonth();
                 Integer visibleDay = belongsToDisplayedMonth ? dayNumber : null;
+                LocalDate date = belongsToDisplayedMonth
+                        ? displayedMonth.atDay(dayNumber)
+                        : null;
                 boolean isToday = belongsToDisplayedMonth
                         && today.getYear() == displayedMonth.getYear()
                         && today.getMonth() == displayedMonth.getMonth()
                         && today.getDayOfMonth() == dayNumber;
+                boolean isSelected = date != null && date.equals(selectedDate);
 
-                weekRow.addView(createDayCell(visibleDay, isToday));
+                weekRow.addView(createDayCell(date, visibleDay, isToday, isSelected));
 
                 if (belongsToDisplayedMonth) {
                     dayNumber++;
@@ -232,7 +286,12 @@ public class SeniorCalendarActivity extends AppCompatActivity {
         }
     }
 
-    private View createDayCell(Integer dayNumber, boolean isToday) {
+    private View createDayCell(
+            LocalDate date,
+            Integer dayNumber,
+            boolean isToday,
+            boolean isSelected
+    ) {
         TextView dayView = new TextView(this);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dpToPx(68), 1f);
         params.setMargins(dpToPx(2), dpToPx(4), dpToPx(2), 0);
@@ -251,16 +310,118 @@ public class SeniorCalendarActivity extends AppCompatActivity {
         }
 
         dayView.setText(String.valueOf(dayNumber));
-        dayView.setBackground(null);
-
-        if (isToday) {
+        if (isSelected) {
+            dayView.setTextColor(Color.WHITE);
+            dayView.setBackground(createRoundedBackground(
+                    palette.getPrimaryColor(),
+                    Color.TRANSPARENT,
+                    20,
+                    0
+            ));
+        } else if (isToday) {
             dayView.setTextColor(palette.getPrimaryColor());
             dayView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 32);
+            dayView.setBackground(createRoundedBackground(
+                    Color.TRANSPARENT,
+                    palette.getPrimaryColor(),
+                    20,
+                    2
+            ));
         } else {
             dayView.setTextColor(palette.getBodyTextColor());
+            dayView.setBackground(null);
         }
+        dayView.setClickable(true);
+        dayView.setFocusable(true);
+        dayView.setOnClickListener(view -> {
+            if (date == null) {
+                return;
+            }
+            selectedDate = date;
+            renderCalendar();
+        });
 
         return dayView;
+    }
+
+    private void updateSelectedDayPanel() {
+        if (selectedDayValueView == null || selectedDayHintView == null) {
+            return;
+        }
+
+        if (selectedDate == null) {
+            selectedDayValueView.setText("");
+            selectedDayHintView.setText(R.string.senior_calendar_selected_day_hint);
+            return;
+        }
+
+        String formattedDate = capitalize(selectedDate.format(
+                DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale)
+        ));
+        selectedDayValueView.setText(formattedDate);
+        selectedDayHintView.setText(R.string.senior_calendar_selected_day_hint);
+    }
+
+    private void syncSelectionWithDisplayedMonth() {
+        if (selectedDate != null && YearMonth.from(selectedDate).equals(displayedMonth)) {
+            return;
+        }
+
+        LocalDate today = LocalDate.now();
+        if (YearMonth.from(today).equals(displayedMonth)) {
+            selectedDate = today;
+            return;
+        }
+
+        selectedDate = displayedMonth.atDay(1);
+    }
+
+    private void openSelectedDateInCalendar() {
+        if (selectedDate == null) {
+            return;
+        }
+
+        long startMillis = toStartOfDayMillis(selectedDate);
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(
+                ContentUris.appendId(CalendarContract.CONTENT_URI.buildUpon().appendPath("time"), startMillis)
+                        .build()
+        );
+
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
+            return;
+        }
+
+        Toast.makeText(this, R.string.senior_calendar_calendar_unavailable, Toast.LENGTH_SHORT).show();
+    }
+
+    private void createEventForSelectedDate() {
+        if (selectedDate == null) {
+            return;
+        }
+
+        long startMillis = toStartOfDayMillis(selectedDate);
+        long endMillis = startMillis + (60L * 60L * 1000L);
+        Intent intent = new Intent(Intent.ACTION_INSERT);
+        intent.setData(CalendarContract.Events.CONTENT_URI);
+        intent.putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startMillis);
+        intent.putExtra(CalendarContract.EXTRA_EVENT_END_TIME, endMillis);
+        intent.putExtra(CalendarContract.Events.TITLE, getString(R.string.senior_calendar_event_title));
+
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
+            return;
+        }
+
+        Toast.makeText(this, R.string.senior_calendar_calendar_unavailable, Toast.LENGTH_SHORT).show();
+    }
+
+    private long toStartOfDayMillis(LocalDate date) {
+        return date
+                .atStartOfDay(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli();
     }
 
     private GradientDrawable createRoundedBackground(

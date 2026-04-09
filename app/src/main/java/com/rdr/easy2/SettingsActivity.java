@@ -30,54 +30,59 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SetupActivity extends AppCompatActivity {
-    private static final int REQUEST_CONTACTS_PERMISSION = 3001;
-    private static final int TOTAL_STEPS = 4;
-    private static final int STEP_BASIC = 0;
-    private static final int STEP_THEME = 1;
-    private static final int STEP_MEDICAL = 2;
-    private static final int STEP_CONTACTS = 3;
+public class SettingsActivity extends AppCompatActivity {
+    private static final int REQUEST_CONTACTS_PERMISSION = 3101;
 
     private EditText firstNameInput;
     private EditText lastNameInput;
     private EditText ageInput;
     private EditText medicalInfoInput;
     private EditText serverUrlInput;
-    private View setupRootView;
-    private View setupCardView;
+    private View settingsRootView;
+    private View profileCardView;
+    private View themeCardView;
+    private View medicalCardView;
+    private View contactsCardView;
+    private View accessibilityCardView;
+    private View supportCardView;
     private View clientContactsContainer;
-    private ScrollView setupScrollView;
+    private ScrollView settingsScrollView;
     private TextView titleView;
     private TextView subtitleView;
-    private TextView stepCounterView;
-    private TextView cardTitleView;
-    private TextView cardDetailView;
-    private TextView optionalChipView;
-    private TextView contactsHelperView;
+    private TextView categoryPersonalView;
+    private TextView categoryHealthView;
+    private TextView categoryAccessibilityView;
+    private TextView categorySystemView;
+    private TextView profileTitleView;
+    private TextView themeTitleView;
+    private TextView medicalTitleView;
+    private TextView contactsTitleView;
+    private TextView accessibilityTitleView;
+    private TextView accessibilityDetailView;
     private TextView supportTitleView;
+    private TextView contactsHelperView;
     private TextView roleTitleView;
     private TextView roleDetailView;
     private TextView modeClientButton;
     private TextView modeAdminButton;
     private TextView serverHelperView;
     private TextView adminHelperView;
-    private Button backButton;
+    private Button closeButton;
     private Button saveButton;
     private Button organizeShortcutsButton;
     private Button phoneSettingsButton;
     private Button keyboardSettingsButton;
-    private final View[] progressSegments = new View[TOTAL_STEPS];
-    private final View[] stepSections = new View[TOTAL_STEPS];
+    private Button accessibilitySettingsButton;
+    private Button displaySettingsButton;
+    private Button hearingAssistButton;
     private final TextView[] contactSlots = new TextView[4];
     private final TextView[] colorOptions = new TextView[6];
     private final TextView[] colorLabels = new TextView[6];
     private final List<PinnedContact> selectedContacts = new ArrayList<>();
 
     private int pendingContactIndex = -1;
-    private int currentStep = STEP_BASIC;
     private String selectedThemeKey = LauncherThemePalette.KEY_GREEN;
     private String selectedUserMode = LauncherPreferences.USER_MODE_CLIENT;
-    private boolean setupAlreadyComplete;
 
     private ActivityResultLauncher<Intent> contactPickerLauncher;
     private Easy2KeyboardController keyboardController;
@@ -85,21 +90,37 @@ public class SetupActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_setup);
 
-        setupAlreadyComplete = LauncherPreferences.isSetupComplete(this);
+        if (!LauncherPreferences.isSetupComplete(this)) {
+            startActivity(new Intent(this, SetupActivity.class));
+            finish();
+            return;
+        }
 
-        setupRootView = findViewById(R.id.setup_root);
-        setupCardView = findViewById(R.id.setup_card_view);
-        setupScrollView = findViewById(R.id.setup_scroll_view);
-        titleView = findViewById(R.id.setup_title_view);
-        subtitleView = findViewById(R.id.setup_subtitle_view);
-        stepCounterView = findViewById(R.id.setup_step_view);
-        cardTitleView = findViewById(R.id.setup_card_title_view);
-        cardDetailView = findViewById(R.id.setup_card_detail_view);
-        optionalChipView = findViewById(R.id.setup_optional_chip_view);
+        setContentView(R.layout.activity_settings);
+
+        settingsRootView = findViewById(R.id.settings_root);
+        settingsScrollView = findViewById(R.id.settings_scroll_view);
+        profileCardView = findViewById(R.id.settings_profile_card);
+        themeCardView = findViewById(R.id.settings_theme_card);
+        medicalCardView = findViewById(R.id.settings_medical_card);
+        contactsCardView = findViewById(R.id.settings_contacts_card);
+        accessibilityCardView = findViewById(R.id.settings_accessibility_card);
+        supportCardView = findViewById(R.id.settings_support_card);
+        titleView = findViewById(R.id.settings_title_view);
+        subtitleView = findViewById(R.id.settings_subtitle_view);
+        categoryPersonalView = findViewById(R.id.settings_category_personal_view);
+        categoryHealthView = findViewById(R.id.settings_category_health_view);
+        categoryAccessibilityView = findViewById(R.id.settings_category_accessibility_view);
+        categorySystemView = findViewById(R.id.settings_category_system_view);
+        profileTitleView = findViewById(R.id.settings_profile_title_view);
+        themeTitleView = findViewById(R.id.settings_theme_title_view);
+        medicalTitleView = findViewById(R.id.settings_medical_title_view);
+        contactsTitleView = findViewById(R.id.settings_contacts_title_view);
+        accessibilityTitleView = findViewById(R.id.settings_accessibility_title_view);
+        accessibilityDetailView = findViewById(R.id.settings_accessibility_detail_view);
+        supportTitleView = findViewById(R.id.settings_support_title_view);
         contactsHelperView = findViewById(R.id.setup_contacts_helper_view);
-        supportTitleView = findViewById(R.id.setup_support_title_view);
         roleTitleView = findViewById(R.id.setup_role_title_view);
         roleDetailView = findViewById(R.id.setup_role_detail_view);
         modeClientButton = findViewById(R.id.setup_mode_client_button);
@@ -111,22 +132,15 @@ public class SetupActivity extends AppCompatActivity {
         ageInput = findViewById(R.id.input_age);
         medicalInfoInput = findViewById(R.id.input_medical_info);
         serverUrlInput = findViewById(R.id.input_server_url);
-        backButton = findViewById(R.id.setup_back_button);
-        saveButton = findViewById(R.id.save_setup_button);
+        closeButton = findViewById(R.id.settings_close_button);
+        saveButton = findViewById(R.id.settings_save_button);
         organizeShortcutsButton = findViewById(R.id.organize_shortcuts_button);
         phoneSettingsButton = findViewById(R.id.open_phone_settings_button);
         keyboardSettingsButton = findViewById(R.id.open_keyboard_settings_button);
+        accessibilitySettingsButton = findViewById(R.id.open_accessibility_settings_button);
+        displaySettingsButton = findViewById(R.id.open_display_settings_button);
+        hearingAssistButton = findViewById(R.id.open_hearing_assist_button);
         clientContactsContainer = findViewById(R.id.setup_client_contacts_container);
-
-        progressSegments[0] = findViewById(R.id.setup_progress_0);
-        progressSegments[1] = findViewById(R.id.setup_progress_1);
-        progressSegments[2] = findViewById(R.id.setup_progress_2);
-        progressSegments[3] = findViewById(R.id.setup_progress_3);
-
-        stepSections[STEP_BASIC] = findViewById(R.id.setup_step_basic_section);
-        stepSections[STEP_THEME] = findViewById(R.id.setup_step_theme_section);
-        stepSections[STEP_MEDICAL] = findViewById(R.id.setup_step_medical_section);
-        stepSections[STEP_CONTACTS] = findViewById(R.id.setup_step_contacts_section);
 
         contactSlots[0] = findViewById(R.id.contact_slot_0);
         contactSlots[1] = findViewById(R.id.contact_slot_1);
@@ -147,8 +161,8 @@ public class SetupActivity extends AppCompatActivity {
         colorLabels[4] = findViewById(R.id.color_label_teal);
         colorLabels[5] = findViewById(R.id.color_label_black);
 
-        LinearLayout keyboardContainer = findViewById(R.id.setup_keyboard_container);
-        keyboardController = new Easy2KeyboardController(this, keyboardContainer, setupScrollView);
+        LinearLayout keyboardContainer = findViewById(R.id.settings_keyboard_container);
+        keyboardController = new Easy2KeyboardController(this, keyboardContainer, settingsScrollView);
         keyboardController.attach(firstNameInput);
         keyboardController.attach(lastNameInput);
         keyboardController.attach(ageInput);
@@ -164,21 +178,21 @@ public class SetupActivity extends AppCompatActivity {
                 this::handlePickedContact
         );
 
-        titleView.setText(setupAlreadyComplete ? R.string.setup_edit_title : R.string.setup_title);
-        subtitleView.setText(
-                setupAlreadyComplete
-                        ? R.string.setup_edit_subtitle
-                        : R.string.setup_subtitle
-        );
-
         bindContactSlots();
         bindColorOptions();
         bindModeButtons();
         preloadExistingValues();
-        showStep(STEP_BASIC);
+        applySelectedTheme();
 
-        saveButton.setOnClickListener(view -> handlePrimaryAction());
-        backButton.setOnClickListener(view -> handleBackAction());
+        if (closeButton != null) {
+            closeButton.setOnClickListener(view -> {
+                clearTextInputFocus();
+                finish();
+            });
+        }
+        if (saveButton != null) {
+            saveButton.setOnClickListener(view -> saveSettings());
+        }
         if (organizeShortcutsButton != null) {
             organizeShortcutsButton.setOnClickListener(view -> {
                 clearTextInputFocus();
@@ -195,6 +209,24 @@ public class SetupActivity extends AppCompatActivity {
             keyboardSettingsButton.setOnClickListener(view -> {
                 clearTextInputFocus();
                 openKeyboardSettings();
+            });
+        }
+        if (accessibilitySettingsButton != null) {
+            accessibilitySettingsButton.setOnClickListener(view -> {
+                clearTextInputFocus();
+                openAccessibilitySettings();
+            });
+        }
+        if (displaySettingsButton != null) {
+            displaySettingsButton.setOnClickListener(view -> {
+                clearTextInputFocus();
+                openDisplaySettings();
+            });
+        }
+        if (hearingAssistButton != null) {
+            hearingAssistButton.setOnClickListener(view -> {
+                clearTextInputFocus();
+                startActivity(new Intent(this, HearingAssistActivity.class));
             });
         }
     }
@@ -268,37 +300,6 @@ public class SetupActivity extends AppCompatActivity {
         refreshRoleUi();
     }
 
-    private void showStep(int step) {
-        currentStep = Math.max(STEP_BASIC, Math.min(step, TOTAL_STEPS - 1));
-        clearTextInputFocus();
-
-        for (int i = 0; i < stepSections.length; i++) {
-            if (stepSections[i] != null) {
-                stepSections[i].setVisibility(i == currentStep ? View.VISIBLE : View.GONE);
-            }
-        }
-
-        optionalChipView.setVisibility(currentStep == STEP_MEDICAL ? View.VISIBLE : View.GONE);
-        cardTitleView.setText(getStepTitleRes(currentStep));
-        cardDetailView.setText(getStepDetailRes(currentStep));
-        stepCounterView.setText(
-                getString(R.string.setup_step_counter, currentStep + 1, TOTAL_STEPS)
-        );
-
-        backButton.setVisibility(currentStep == STEP_BASIC ? View.INVISIBLE : View.VISIBLE);
-        saveButton.setText(
-                currentStep == STEP_CONTACTS
-                        ? (setupAlreadyComplete
-                            ? R.string.setup_save_changes
-                            : R.string.setup_save)
-                        : R.string.setup_next
-        );
-
-        refreshRoleUi();
-        applySelectedTheme();
-        scrollToTop();
-    }
-
     private void refreshRoleUi() {
         boolean adminMode = LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode);
 
@@ -308,68 +309,6 @@ public class SetupActivity extends AppCompatActivity {
         if (adminHelperView != null) {
             adminHelperView.setVisibility(adminMode ? View.VISIBLE : View.GONE);
         }
-    }
-
-    private int getStepTitleRes(int step) {
-        boolean adminMode = LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode);
-        switch (step) {
-            case STEP_THEME:
-                return R.string.setup_step_theme_title;
-            case STEP_MEDICAL:
-                return R.string.setup_step_medical_title;
-            case STEP_CONTACTS:
-                return adminMode
-                        ? R.string.setup_step_admin_title
-                        : R.string.setup_step_contacts_title;
-            case STEP_BASIC:
-            default:
-                return R.string.setup_step_basic_title;
-        }
-    }
-
-    private int getStepDetailRes(int step) {
-        boolean adminMode = LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode);
-        switch (step) {
-            case STEP_THEME:
-                return R.string.setup_step_theme_detail;
-            case STEP_MEDICAL:
-                return R.string.setup_step_medical_detail;
-            case STEP_CONTACTS:
-                return adminMode
-                        ? R.string.setup_step_admin_detail
-                        : R.string.setup_step_contacts_detail;
-            case STEP_BASIC:
-            default:
-                return R.string.setup_step_basic_detail;
-        }
-    }
-
-    private void handlePrimaryAction() {
-        switch (currentStep) {
-            case STEP_BASIC:
-                if (validateBasicInfo(true)) {
-                    showStep(STEP_THEME);
-                }
-                break;
-            case STEP_THEME:
-                showStep(STEP_MEDICAL);
-                break;
-            case STEP_MEDICAL:
-                showStep(STEP_CONTACTS);
-                break;
-            case STEP_CONTACTS:
-            default:
-                saveSetup();
-                break;
-        }
-    }
-
-    private void handleBackAction() {
-        if (currentStep > STEP_BASIC) {
-            showStep(currentStep - 1);
-            return;
-        }
-        onBackPressed();
     }
 
     private boolean validateBasicInfo(boolean showErrors) {
@@ -450,46 +389,57 @@ public class SetupActivity extends AppCompatActivity {
     private void applySelectedTheme() {
         LauncherThemePalette palette = LauncherThemePalette.fromKey(selectedThemeKey);
 
-        if (setupRootView != null) {
-            setupRootView.setBackgroundColor(palette.getBackgroundColor());
+        if (settingsRootView != null) {
+            settingsRootView.setBackgroundColor(palette.getBackgroundColor());
         }
-        if (setupCardView != null) {
-            setupCardView.setBackground(createRoundedDrawable(
-                    palette.getSetupFieldFillColor(),
-                    palette.getSetupFieldStrokeColor(),
-                    28,
-                    2
-            ));
-        }
+        applySectionCardTheme(profileCardView, palette);
+        applySectionCardTheme(themeCardView, palette);
+        applySectionCardTheme(medicalCardView, palette);
+        applySectionCardTheme(contactsCardView, palette);
+        applySectionCardTheme(accessibilityCardView, palette);
+        applySectionCardTheme(supportCardView, palette);
+
         if (titleView != null) {
             titleView.setTextColor(palette.getHeadingColor());
         }
         if (subtitleView != null) {
             subtitleView.setTextColor(palette.getBodyTextColor());
         }
-        if (stepCounterView != null) {
-            stepCounterView.setTextColor(palette.getPrimaryColor());
+        if (categoryPersonalView != null) {
+            categoryPersonalView.setTextColor(palette.getPrimaryColor());
         }
-        if (cardTitleView != null) {
-            cardTitleView.setTextColor(palette.getHeadingColor());
+        if (categoryHealthView != null) {
+            categoryHealthView.setTextColor(palette.getPrimaryColor());
         }
-        if (cardDetailView != null) {
-            cardDetailView.setTextColor(palette.getBodyTextColor());
+        if (categoryAccessibilityView != null) {
+            categoryAccessibilityView.setTextColor(palette.getPrimaryColor());
         }
-        if (optionalChipView != null) {
-            optionalChipView.setTextColor(0xFFFFFFFF);
-            optionalChipView.setBackground(createRoundedDrawable(
-                    palette.getPrimaryColor(),
-                    palette.getPrimaryColor(),
-                    999,
-                    0
-            ));
+        if (categorySystemView != null) {
+            categorySystemView.setTextColor(palette.getPrimaryColor());
         }
-        if (contactsHelperView != null) {
-            contactsHelperView.setTextColor(palette.getBodyTextColor());
+        if (profileTitleView != null) {
+            profileTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (themeTitleView != null) {
+            themeTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (medicalTitleView != null) {
+            medicalTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (contactsTitleView != null) {
+            contactsTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (accessibilityTitleView != null) {
+            accessibilityTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (accessibilityDetailView != null) {
+            accessibilityDetailView.setTextColor(palette.getBodyTextColor());
         }
         if (supportTitleView != null) {
             supportTitleView.setTextColor(palette.getHeadingColor());
+        }
+        if (contactsHelperView != null) {
+            contactsHelperView.setTextColor(palette.getBodyTextColor());
         }
         if (roleTitleView != null) {
             roleTitleView.setTextColor(palette.getHeadingColor());
@@ -507,22 +457,25 @@ public class SetupActivity extends AppCompatActivity {
             saveButton.setBackgroundTintList(ColorStateList.valueOf(palette.getPrimaryColor()));
             saveButton.setTextColor(0xFFFFFFFF);
         }
-        if (backButton != null) {
-            int backFillColor = palette.isDarkMode()
+        if (closeButton != null) {
+            int closeFillColor = palette.isDarkMode()
                     ? palette.getCircleColor()
                     : palette.getSetupContactFillColor();
-            backButton.setBackground(createRoundedDrawable(
-                    backFillColor,
+            closeButton.setBackground(createRoundedDrawable(
+                    closeFillColor,
                     palette.getSetupContactStrokeColor(),
                     22,
                     2
             ));
-            backButton.setTextColor(palette.getBodyTextColor());
+            closeButton.setTextColor(palette.getBodyTextColor());
         }
 
         applyActionButtonTheme(organizeShortcutsButton, palette);
         applyActionButtonTheme(phoneSettingsButton, palette);
         applyActionButtonTheme(keyboardSettingsButton, palette);
+        applyActionButtonTheme(accessibilitySettingsButton, palette);
+        applyActionButtonTheme(displaySettingsButton, palette);
+        applyActionButtonTheme(hearingAssistButton, palette);
 
         applyTextFieldTheme(firstNameInput, palette);
         applyTextFieldTheme(lastNameInput, palette);
@@ -533,15 +486,34 @@ public class SetupActivity extends AppCompatActivity {
             keyboardController.applyTheme(palette);
         }
 
-        applyModeButtonTheme(modeClientButton, palette, !LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode));
-        applyModeButtonTheme(modeAdminButton, palette, LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode));
+        applyModeButtonTheme(
+                modeClientButton,
+                palette,
+                !LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode)
+        );
+        applyModeButtonTheme(
+                modeAdminButton,
+                palette,
+                LauncherPreferences.USER_MODE_ADMIN.equals(selectedUserMode)
+        );
 
         for (TextView contactSlot : contactSlots) {
             applyContactSlotTheme(contactSlot, palette);
         }
 
-        updateProgressIndicator(palette);
         updateColorOptionSelection();
+    }
+
+    private void applySectionCardTheme(View cardView, LauncherThemePalette palette) {
+        if (cardView == null) {
+            return;
+        }
+        cardView.setBackground(createRoundedDrawable(
+                palette.getSetupFieldFillColor(),
+                palette.getSetupFieldStrokeColor(),
+                28,
+                2
+        ));
     }
 
     private void applyActionButtonTheme(Button button, LauncherThemePalette palette) {
@@ -573,18 +545,6 @@ public class SetupActivity extends AppCompatActivity {
                 : palette.getSetupContactStrokeColor();
         button.setBackground(createRoundedDrawable(fillColor, strokeColor, 18, selected ? 0 : 2));
         button.setTextColor(selected ? 0xFFFFFFFF : palette.getBodyTextColor());
-    }
-
-    private void updateProgressIndicator(LauncherThemePalette palette) {
-        int inactiveColor = palette.isDarkMode() ? 0xFF303030 : 0x1A000000;
-        for (int i = 0; i < progressSegments.length; i++) {
-            View segment = progressSegments[i];
-            if (segment == null) {
-                continue;
-            }
-            int fillColor = i <= currentStep ? palette.getPrimaryColor() : inactiveColor;
-            segment.setBackground(createRoundedDrawable(fillColor, fillColor, 999, 0));
-        }
     }
 
     private void applyTextFieldTheme(EditText editText, LauncherThemePalette palette) {
@@ -688,12 +648,6 @@ public class SetupActivity extends AppCompatActivity {
                 dpValue,
                 getResources().getDisplayMetrics()
         );
-    }
-
-    private void scrollToTop() {
-        if (setupScrollView != null) {
-            setupScrollView.post(() -> setupScrollView.smoothScrollTo(0, 0));
-        }
     }
 
     private void focusInput(EditText editText) {
@@ -812,16 +766,12 @@ public class SetupActivity extends AppCompatActivity {
         }
     }
 
-    private void saveSetup() {
+    private void saveSettings() {
         clearTextInputFocus();
-        if (!validateBasicInfo(false)) {
-            showStep(STEP_BASIC);
-            validateBasicInfo(true);
+        if (!validateBasicInfo(true)) {
             return;
         }
-        if (!validateContacts(false)) {
-            showStep(STEP_CONTACTS);
-            Toast.makeText(this, R.string.setup_validation_contacts, Toast.LENGTH_SHORT).show();
+        if (!validateContacts(true)) {
             return;
         }
 
@@ -832,6 +782,10 @@ public class SetupActivity extends AppCompatActivity {
         String serverUrl = LauncherPreferences.sanitizeServerUrl(
                 serverUrlInput.getText().toString()
         );
+
+        String previousServerUrl = LauncherPreferences.getRemoteServerUrl(this);
+        String previousUserMode = LauncherPreferences.getUserMode(this);
+        String previousClientId = LauncherPreferences.getRemoteClientId(this);
 
         List<PinnedContact> pinnedContacts = new ArrayList<>();
         for (PinnedContact selectedContact : selectedContacts) {
@@ -852,8 +806,14 @@ public class SetupActivity extends AppCompatActivity {
                 pinnedContacts
         );
 
-        if (LauncherPreferences.USER_MODE_CLIENT.equals(selectedUserMode)
-                && !TextUtils.isEmpty(serverUrl)) {
+        boolean shouldRegisterClient =
+                LauncherPreferences.USER_MODE_CLIENT.equals(selectedUserMode)
+                        && !TextUtils.isEmpty(serverUrl)
+                        && (TextUtils.isEmpty(previousClientId)
+                            || !serverUrl.equals(previousServerUrl)
+                            || !LauncherPreferences.USER_MODE_CLIENT.equals(previousUserMode));
+
+        if (shouldRegisterClient) {
             Toast.makeText(this, R.string.setup_registration_started, Toast.LENGTH_SHORT).show();
             registerClientInBackground(serverUrl, firstName, lastName, age);
         }
@@ -877,6 +837,22 @@ public class SetupActivity extends AppCompatActivity {
             startActivity(new Intent(this, KeyboardActivationActivity.class));
         } catch (Exception exception) {
             Toast.makeText(this, R.string.keyboard_settings_unavailable, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openAccessibilitySettings() {
+        try {
+            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+        } catch (Exception exception) {
+            Toast.makeText(this, R.string.settings_accessibility_error, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openDisplaySettings() {
+        try {
+            startActivity(new Intent(Settings.ACTION_DISPLAY_SETTINGS));
+        } catch (Exception exception) {
+            Toast.makeText(this, R.string.settings_accessibility_error, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -904,10 +880,6 @@ public class SetupActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         if (keyboardController != null && keyboardController.handleBackPressed()) {
-            return;
-        }
-        if (currentStep > STEP_BASIC) {
-            showStep(currentStep - 1);
             return;
         }
         clearTextInputFocus();

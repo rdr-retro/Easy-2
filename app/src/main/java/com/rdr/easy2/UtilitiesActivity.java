@@ -31,12 +31,20 @@ public class UtilitiesActivity extends AppCompatActivity {
                 view -> startActivity(new Intent(this, NotesActivity.class));
         View.OnClickListener openFoodScannerListener =
                 view -> startActivity(new Intent(this, FoodScannerActivity.class));
+        View.OnClickListener openHearingListener =
+                view -> startActivity(new Intent(this, HearingAssistActivity.class));
+        View.OnClickListener openAlarmListener =
+                view -> startActivity(new Intent(this, AlarmActivity.class));
         findViewById(R.id.utility_calendar_circle).setOnClickListener(openCalendarListener);
         findViewById(R.id.utility_calendar_label).setOnClickListener(openCalendarListener);
         findViewById(R.id.utility_note_circle).setOnClickListener(openNotesListener);
         findViewById(R.id.utility_note_label).setOnClickListener(openNotesListener);
         findViewById(R.id.utility_scan_food_circle).setOnClickListener(openFoodScannerListener);
         findViewById(R.id.utility_scan_food_label).setOnClickListener(openFoodScannerListener);
+        findViewById(R.id.utility_hearing_circle).setOnClickListener(openHearingListener);
+        findViewById(R.id.utility_hearing_label).setOnClickListener(openHearingListener);
+        findViewById(R.id.utility_alarm_circle).setOnClickListener(openAlarmListener);
+        findViewById(R.id.utility_alarm_label).setOnClickListener(openAlarmListener);
         applyThemePalette();
         enableFullscreen();
     }
@@ -97,6 +105,8 @@ public class UtilitiesActivity extends AppCompatActivity {
         TextView scanFoodLabel = findViewById(R.id.utility_scan_food_label);
         FrameLayout hearingCircle = findViewById(R.id.utility_hearing_circle);
         TextView hearingLabel = findViewById(R.id.utility_hearing_label);
+        FrameLayout alarmCircle = findViewById(R.id.utility_alarm_circle);
+        TextView alarmLabel = findViewById(R.id.utility_alarm_label);
 
         if (rootView != null) {
             rootView.setBackgroundColor(palette.getBackgroundColor());
@@ -127,6 +137,12 @@ public class UtilitiesActivity extends AppCompatActivity {
         }
         if (hearingLabel != null) {
             hearingLabel.setBackground(createRoundedBackground(palette.getChipColor(), 18));
+        }
+        if (alarmCircle != null) {
+            alarmCircle.setBackground(createCircleBackground(palette.getCircleColor()));
+        }
+        if (alarmLabel != null) {
+            alarmLabel.setBackground(createRoundedBackground(palette.getChipColor(), 18));
         }
         if (volumeOverlayController != null) {
             volumeOverlayController.applyTheme(palette);

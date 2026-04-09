@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView nameView;
     private TextView ageView;
     private TextView utilitiesButton;
+    private TextView phoneAppsButton;
     private BatteryIconView batteryIconView;
     private View rootView;
     private View topPanel;
@@ -135,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         if (!LauncherPreferences.isSetupComplete(this)) {
-            openSetup(true);
+            openSetup();
             return;
         }
 
@@ -159,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
         nameView = findViewById(R.id.name_view);
         ageView = findViewById(R.id.age_view);
         utilitiesButton = findViewById(R.id.utilities_button);
+        phoneAppsButton = findViewById(R.id.phone_apps_button);
         batteryIconView = findViewById(R.id.battery_icon);
         rootView = findViewById(R.id.main_root);
         topPanel = findViewById(R.id.top_panel);
@@ -374,7 +376,7 @@ public class MainActivity extends AppCompatActivity {
                             RemoteServerClient.registerClient(
                                     serverUrl,
                                     authToken,
-                                    Build.MODEL,
+                                    DeviceIdentity.getDisplayName(this),
                                     displayName,
                                     LauncherPreferences.getAge(this)
                             );
@@ -392,7 +394,8 @@ public class MainActivity extends AppCompatActivity {
                         authToken,
                         locationSnapshot,
                         batterySnapshot.percentage,
-                        batterySnapshot.isCharging
+                        batterySnapshot.isCharging,
+                        DeviceIdentity.getDisplayName(this)
                 );
                 LauncherPreferences.markRemoteSync(this);
             } catch (RemoteServerClient.HttpStatusException exception) {
@@ -530,7 +533,9 @@ public class MainActivity extends AppCompatActivity {
             );
         }
         if (settingsButton != null) {
-            settingsButton.setOnClickListener(view -> openSetup(false));
+            settingsButton.setOnClickListener(view ->
+                    startActivity(new Intent(this, SettingsActivity.class))
+            );
         }
         if (sosButton != null) {
             sosButton.setOnClickListener(view -> openEmergencyDialer());
@@ -554,6 +559,11 @@ public class MainActivity extends AppCompatActivity {
         if (utilitiesButton != null) {
             utilitiesButton.setOnClickListener(view ->
                     startActivity(new Intent(this, UtilitiesActivity.class))
+            );
+        }
+        if (phoneAppsButton != null) {
+            phoneAppsButton.setOnClickListener(view ->
+                    startActivity(new Intent(this, PhoneAppsActivity.class))
             );
         }
     }
@@ -680,14 +690,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void openSetup(boolean clearLauncher) {
+    private void openSetup() {
         Intent setupIntent = new Intent(this, SetupActivity.class);
-        if (clearLauncher) {
-            startActivity(setupIntent);
-            finish();
-            return;
-        }
         startActivity(setupIntent);
+        finish();
     }
 
     private void openEmergencyDialer() {

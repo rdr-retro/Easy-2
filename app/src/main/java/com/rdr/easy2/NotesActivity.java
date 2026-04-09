@@ -87,6 +87,9 @@ public class NotesActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        if (keyboardController != null && keyboardController.handleBackPressed()) {
+            return;
+        }
         if (editorVisible) {
             closeEditor();
             return;

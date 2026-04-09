@@ -39,10 +39,10 @@ public class AdminActivity extends AppCompatActivity {
             refreshButton.setOnClickListener(view -> reloadDashboard());
         }
         if (settingsButton != null) {
-            settingsButton.setOnClickListener(view -> openSetup());
+            settingsButton.setOnClickListener(view -> openSettings());
         }
         if (emptyStateButton != null) {
-            emptyStateButton.setOnClickListener(view -> openSetup());
+            emptyStateButton.setOnClickListener(view -> openSettings());
         }
 
         configureWebView();
@@ -146,8 +146,8 @@ public class AdminActivity extends AppCompatActivity {
         webView.reload();
     }
 
-    private void openSetup() {
-        startActivity(new Intent(this, SetupActivity.class));
+    private void openSettings() {
+        startActivity(new Intent(this, SettingsActivity.class));
     }
 
     private void showStatus(String message) {

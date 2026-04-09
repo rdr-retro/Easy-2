@@ -47,7 +47,8 @@ public final class RemoteServerClient {
             String authToken,
             Location location,
             int batteryPercent,
-            boolean isCharging
+            boolean isCharging,
+            String deviceModel
     ) throws Exception {
         if (location == null || TextUtils.isEmpty(clientId)) {
             return;
@@ -61,6 +62,7 @@ public final class RemoteServerClient {
         payload.put("provider", emptyToDefault(location.getProvider(), ""));
         payload.put("battery_percent", batteryPercent);
         payload.put("is_charging", isCharging);
+        payload.put("device_model", emptyToDefault(deviceModel, ""));
         payload.put("recorded_at", System.currentTimeMillis());
 
         postJson(
@@ -70,7 +72,7 @@ public final class RemoteServerClient {
     }
 
     public static String buildDashboardUrl(String baseUrl) {
-        return buildApiUrl(baseUrl, "/dashboard?embedded=1");
+        return buildApiUrl(baseUrl, "/admin?embedded=1");
     }
 
     public static String normalizeBaseUrl(String baseUrl) {
