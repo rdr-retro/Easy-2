@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acceso administrador - Easy 2</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body{% if embedded %} class="embedded"{% endif %}>
+    <div class="page login-page">
+        <div class="masthead">
+            <div class="site-line">Easy 2 Server / acceso administrador</div>
+            <h1>Entrar o crear cuenta con Google</h1>
+            <p class="lead">
+                La web del administrador ahora necesita una cuenta de Google para abrir el panel.
+            </p>
+        </div>
+
+        <fieldset class="box login-box">
+            <legend>Acceso</legend>
+
+            {% if notice %}
+            <div class="login-message {% if notice.type == 'error' %}login-message-error{% endif %}">
+                {{ notice.text }}
+            </div>
+            {% endif %}
+
+            <p class="section-help">
+                {{ signup_policy_summary }}
+            </p>
+            <p class="section-help">
+                Administradores creados hasta ahora: <strong>{{ admin_count }}</strong>
+            </p>
+
+            {% if embedded %}
+            <p class="section-help">
+                Si Google no deja iniciar sesión dentro de la app, abre esta misma dirección en el navegador del móvil.
+            </p>
+            {% endif %}
+
+            {% if oauth_enabled %}
+            <p class="tool-row">
+                <a class="button" href="{{ url_for('auth_google', next=next_path) }}">Entrar con Google</a>
+            </p>
+            {% else %}
+            <div class="login-message login-message-error">
+                Faltan <code>EASY2_GOOGLE_CLIENT_ID</code> y <code>EASY2_GOOGLE_CLIENT_SECRET</code> en el servidor.
+            </div>
+            {% endif %}
+        </fieldset>
+
+        <fieldset class="box login-box">
+            <legend>Configuración necesaria</legend>
+            <ol class="setup-steps">
+                <li>Crea un cliente OAuth de tipo web en Google Cloud Console.</li>
+                <li>Añade esta callback como redirect URI autorizada: <code>{{ callback_url }}</code></li>
+                <li>Configura las variables del servidor con el client ID y el client secret.</li>
+                <li>Vuelve a abrir esta página y entra con Google.</li>
+            </ol>
+            <p class="section-help">
+                Vuelta tras login: <code>{{ next_path }}</code>
+            </p>
+            <p class="section-help">
+                Si el servidor se abre con otra IP o dominio, actualiza tambien la redirect URI en Google.
+            </p>
+        </fieldset>
+    </div>
+</body>
+</html>

@@ -3,22 +3,70 @@ from __future__ import annotations
 import os
 import secrets
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from functools import wraps
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from authlib.integrations.flask_client import OAuth
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DB_PATH = DATA_DIR / "easy2.db"
+SESSION_SECRET_PATH = DATA_DIR / "server_secret.txt"
 
-app = Flask(__name__)
+GOOGLE_DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
+ADMIN_SESSION_KEY = "admin_user_id"
+LOGIN_NEXT_KEY = "admin_login_next"
+LOGIN_NOTICE_KEY = "admin_login_notice"
+DEFAULT_LOGIN_NEXT = "/admin"
 
 
 def utc_now_iso() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def load_or_create_secret_key() -> str:
+    env_secret = os.environ.get("EASY2_SERVER_SECRET_KEY", "").strip()
+    if env_secret:
+        return env_secret
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if SESSION_SECRET_PATH.exists():
+        existing_secret = SESSION_SECRET_PATH.read_text(encoding="utf-8").strip()
+        if existing_secret:
+            return existing_secret
+
+    generated_secret = secrets.token_hex(32)
+    SESSION_SECRET_PATH.write_text(generated_secret, encoding="utf-8")
+    return generated_secret
+
+
+app = Flask(__name__)
+app.secret_key = load_or_create_secret_key()
+app.config.update(
+    SESSION_COOKIE_NAME="easy2_admin_session",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=14),
+    GOOGLE_CLIENT_ID=os.environ.get("EASY2_GOOGLE_CLIENT_ID", "").strip(),
+    GOOGLE_CLIENT_SECRET=os.environ.get("EASY2_GOOGLE_CLIENT_SECRET", "").strip(),
+    PUBLIC_BASE_URL=os.environ.get("EASY2_PUBLIC_BASE_URL", "").strip(),
+)
+
+oauth = OAuth(app)
+GOOGLE_OAUTH_ENABLED = bool(
+    app.config["GOOGLE_CLIENT_ID"] and app.config["GOOGLE_CLIENT_SECRET"]
+)
+if GOOGLE_OAUTH_ENABLED:
+    oauth.register(
+        name="google",
+        server_metadata_url=GOOGLE_DISCOVERY_URL,
+        client_kwargs={"scope": "openid email profile"},
+    )
 
 
 def ensure_database() -> None:
@@ -62,8 +110,29 @@ def ensure_database() -> None:
         )
         connection.execute(
             """
+            CREATE TABLE IF NOT EXISTS admin_users (
+                id TEXT PRIMARY KEY,
+                google_sub TEXT NOT NULL UNIQUE,
+                email TEXT NOT NULL UNIQUE,
+                full_name TEXT NOT NULL,
+                picture_url TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_login_at TEXT NOT NULL,
+                is_active INTEGER DEFAULT 1
+            )
+            """
+        )
+        connection.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_locations_client_recorded_at
             ON locations(client_id, recorded_at DESC)
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_admin_users_email
+            ON admin_users(email)
             """
         )
         connection.commit()
@@ -88,6 +157,165 @@ def parse_iso_datetime(value: str | None) -> datetime | None:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
+
+
+def parse_csv_env(name: str) -> set[str]:
+    raw_value = os.environ.get(name, "")
+    return {item.strip().lower() for item in raw_value.split(",") if item.strip()}
+
+
+def is_true_env(name: str, default: bool = False) -> bool:
+    raw_value = os.environ.get(name, "").strip().lower()
+    if not raw_value:
+        return default
+    return raw_value in {"1", "true", "yes", "on"}
+
+
+def normalize_email(value: str | None) -> str:
+    return (value or "").strip().lower()
+
+
+def sanitize_base_url(value: str | None) -> str:
+    normalized = (value or "").strip()
+    if not normalized:
+        return ""
+
+    while normalized.endswith("/"):
+        normalized = normalized[:-1]
+    return normalized
+
+
+def external_url_for(endpoint: str, **values: Any) -> str:
+    relative_path = url_for(endpoint, _external=False, **values)
+    public_base_url = sanitize_base_url(app.config.get("PUBLIC_BASE_URL", ""))
+    if public_base_url:
+        return public_base_url + relative_path
+    return url_for(endpoint, _external=True, **values)
+
+
+def current_request_target() -> str:
+    query_string = request.query_string.decode("utf-8", errors="ignore").strip()
+    if query_string:
+        return sanitize_next_value(f"{request.path}?{query_string}")
+    return sanitize_next_value(request.path)
+
+
+def sanitize_next_value(value: str | None) -> str:
+    candidate = (value or "").strip()
+    if not candidate:
+        return DEFAULT_LOGIN_NEXT
+
+    parsed = urlparse(candidate)
+    if parsed.scheme or parsed.netloc:
+        return DEFAULT_LOGIN_NEXT
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return DEFAULT_LOGIN_NEXT
+    return candidate
+
+
+def build_signup_policy_summary() -> str:
+    if not is_true_env("EASY2_GOOGLE_AUTO_CREATE", default=True):
+        return "El alta automática con Google está desactivada."
+
+    allowed_emails = sorted(parse_csv_env("EASY2_ADMIN_ALLOWED_EMAILS"))
+    allowed_domains = sorted(parse_csv_env("EASY2_ADMIN_ALLOWED_DOMAINS"))
+
+    if not allowed_emails and not allowed_domains:
+        return "Cualquier cuenta de Google con email verificado puede crear cuenta."
+
+    parts: list[str] = []
+    if allowed_domains:
+        parts.append("dominios permitidos: " + ", ".join(allowed_domains))
+    if allowed_emails:
+        parts.append("emails permitidos: " + ", ".join(allowed_emails))
+    return "Alta automática limitada a " + " | ".join(parts) + "."
+
+
+def can_auto_create_admin(email: str) -> bool:
+    if not is_true_env("EASY2_GOOGLE_AUTO_CREATE", default=True):
+        return False
+
+    normalized_email = normalize_email(email)
+    if not normalized_email:
+        return False
+
+    allowed_emails = parse_csv_env("EASY2_ADMIN_ALLOWED_EMAILS")
+    allowed_domains = parse_csv_env("EASY2_ADMIN_ALLOWED_DOMAINS")
+    if not allowed_emails and not allowed_domains:
+        return True
+
+    domain = normalized_email.split("@", 1)[1] if "@" in normalized_email else ""
+    return normalized_email in allowed_emails or domain in allowed_domains
+
+
+def admin_row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    if row is None:
+        return None
+
+    return {
+        "id": row["id"],
+        "google_sub": row["google_sub"],
+        "email": row["email"],
+        "full_name": row["full_name"],
+        "picture_url": row["picture_url"] or "",
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "last_login_at": row["last_login_at"],
+        "is_active": bool(row["is_active"]),
+    }
+
+
+def count_admin_users() -> int:
+    ensure_database()
+    with get_connection() as connection:
+        return connection.execute("SELECT COUNT(*) FROM admin_users").fetchone()[0]
+
+
+def get_current_admin() -> dict[str, Any] | None:
+    admin_user_id = str(session.get(ADMIN_SESSION_KEY, "")).strip()
+    if not admin_user_id:
+        return None
+
+    ensure_database()
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM admin_users
+            WHERE id = ? AND is_active = 1
+            """,
+            (admin_user_id,),
+        ).fetchone()
+
+    if row is None:
+        session.pop(ADMIN_SESSION_KEY, None)
+        return None
+
+    return admin_row_to_dict(row)
+
+
+def set_login_notice(message: str, is_error: bool = False) -> None:
+    session[LOGIN_NOTICE_KEY] = {
+        "text": message,
+        "type": "error" if is_error else "info",
+    }
+
+
+def pop_login_notice() -> dict[str, str] | None:
+    notice = session.pop(LOGIN_NOTICE_KEY, None)
+    if not isinstance(notice, dict):
+        return None
+    text = str(notice.get("text", "")).strip()
+    notice_type = str(notice.get("type", "info")).strip() or "info"
+    if not text:
+        return None
+    return {"text": text, "type": notice_type}
+
+
+def get_google_client():
+    if not GOOGLE_OAUTH_ENABLED:
+        return None
+    return oauth.create_client("google")
 
 
 def client_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
@@ -139,15 +367,214 @@ def require_json() -> dict[str, Any]:
     return payload
 
 
+def admin_session_required(view):
+    @wraps(view)
+    def wrapped_view(*args: Any, **kwargs: Any) -> Any:
+        admin_user = get_current_admin()
+        if admin_user is not None:
+            return view(*args, **kwargs)
+
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "Necesitas iniciar sesión como administrador."}), 401
+
+        return redirect(url_for("login", next=current_request_target()))
+
+    return wrapped_view
+
+
 @app.route("/")
 def index() -> Any:
     return redirect(url_for("admin_dashboard"))
 
 
+@app.get("/login")
+def login() -> Any:
+    if get_current_admin() is not None:
+        return redirect(sanitize_next_value(request.args.get("next")))
+
+    next_value = sanitize_next_value(
+        request.args.get("next") or session.get(LOGIN_NEXT_KEY)
+    )
+    session[LOGIN_NEXT_KEY] = next_value
+
+    return render_template(
+        "login.html",
+        embedded=request.args.get("embedded") == "1" or "embedded=1" in next_value,
+        next_path=next_value,
+        callback_url=external_url_for("auth_google_callback"),
+        oauth_enabled=GOOGLE_OAUTH_ENABLED,
+        notice=pop_login_notice(),
+        signup_policy_summary=build_signup_policy_summary(),
+        admin_count=count_admin_users(),
+    )
+
+
+@app.get("/auth/google")
+def auth_google() -> Any:
+    if not GOOGLE_OAUTH_ENABLED:
+        set_login_notice(
+            "Faltan EASY2_GOOGLE_CLIENT_ID y EASY2_GOOGLE_CLIENT_SECRET en el servidor.",
+            is_error=True,
+        )
+        return redirect(url_for("login"))
+
+    next_value = sanitize_next_value(
+        request.args.get("next") or session.get(LOGIN_NEXT_KEY)
+    )
+    session[LOGIN_NEXT_KEY] = next_value
+
+    google_client = get_google_client()
+    if google_client is None:
+        set_login_notice("Google OAuth no está disponible en este arranque.", is_error=True)
+        return redirect(url_for("login"))
+
+    return google_client.authorize_redirect(external_url_for("auth_google_callback"))
+
+
+@app.get("/auth/google/callback")
+def auth_google_callback() -> Any:
+    if not GOOGLE_OAUTH_ENABLED:
+        set_login_notice(
+            "Google OAuth no está configurado en este servidor.",
+            is_error=True,
+        )
+        return redirect(url_for("login"))
+
+    google_client = get_google_client()
+    if google_client is None:
+        set_login_notice("Google OAuth no está disponible en este arranque.", is_error=True)
+        return redirect(url_for("login"))
+
+    try:
+        token = google_client.authorize_access_token()
+    except Exception:
+        set_login_notice("No se pudo completar el acceso con Google.", is_error=True)
+        return redirect(url_for("login"))
+
+    user_info = token.get("userinfo")
+    if not isinstance(user_info, dict):
+        try:
+            user_info = google_client.get("userinfo").json()
+        except Exception:
+            user_info = {}
+
+    google_sub = str(user_info.get("sub", "")).strip()
+    email = normalize_email(user_info.get("email"))
+    full_name = str(user_info.get("name", "")).strip() or email or "Administrador"
+    picture_url = str(user_info.get("picture", "")).strip()
+    email_verified = bool(user_info.get("email_verified"))
+
+    if not google_sub or not email or not email_verified:
+        set_login_notice(
+            "Google no devolvió un email verificado para esta cuenta.",
+            is_error=True,
+        )
+        return redirect(url_for("login"))
+
+    now = utc_now_iso()
+    ensure_database()
+    with get_connection() as connection:
+        admin_row = connection.execute(
+            """
+            SELECT *
+            FROM admin_users
+            WHERE google_sub = ? OR lower(email) = ?
+            ORDER BY CASE WHEN google_sub = ? THEN 0 ELSE 1 END
+            LIMIT 1
+            """,
+            (google_sub, email, google_sub),
+        ).fetchone()
+
+        if admin_row is None:
+            if not can_auto_create_admin(email):
+                set_login_notice(
+                    "Tu cuenta de Google no está autorizada para crear usuario administrador.",
+                    is_error=True,
+                )
+                return redirect(url_for("login"))
+
+            admin_user_id = f"adm_{secrets.token_hex(4)}"
+            connection.execute(
+                """
+                INSERT INTO admin_users (
+                    id,
+                    google_sub,
+                    email,
+                    full_name,
+                    picture_url,
+                    created_at,
+                    updated_at,
+                    last_login_at,
+                    is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                """,
+                (
+                    admin_user_id,
+                    google_sub,
+                    email,
+                    full_name,
+                    picture_url,
+                    now,
+                    now,
+                    now,
+                ),
+            )
+            connection.commit()
+        else:
+            if not bool(admin_row["is_active"]):
+                set_login_notice(
+                    "Tu cuenta de administrador está desactivada.",
+                    is_error=True,
+                )
+                return redirect(url_for("login"))
+
+            admin_user_id = admin_row["id"]
+            connection.execute(
+                """
+                UPDATE admin_users
+                SET google_sub = ?,
+                    email = ?,
+                    full_name = ?,
+                    picture_url = ?,
+                    updated_at = ?,
+                    last_login_at = ?
+                WHERE id = ?
+                """,
+                (
+                    google_sub,
+                    email,
+                    full_name,
+                    picture_url,
+                    now,
+                    now,
+                    admin_user_id,
+                ),
+            )
+            connection.commit()
+
+    session[ADMIN_SESSION_KEY] = admin_user_id
+    session.permanent = True
+    next_path = sanitize_next_value(session.pop(LOGIN_NEXT_KEY, DEFAULT_LOGIN_NEXT))
+    return redirect(next_path)
+
+
+@app.get("/logout")
+def logout() -> Any:
+    session.pop(ADMIN_SESSION_KEY, None)
+    session.pop(LOGIN_NEXT_KEY, None)
+    set_login_notice("Sesión cerrada correctamente.")
+    return redirect(url_for("login"))
+
+
 @app.route("/admin")
 @app.route("/dashboard")
+@admin_session_required
 def admin_dashboard() -> Any:
-    return render_template("dashboard.html", embedded=request.args.get("embedded") == "1")
+    return render_template(
+        "dashboard.html",
+        embedded=request.args.get("embedded") == "1",
+        admin_user=get_current_admin(),
+    )
 
 
 @app.get("/api/health")
@@ -155,17 +582,23 @@ def api_health() -> Any:
     ensure_database()
     with get_connection() as connection:
         total_clients = connection.execute("SELECT COUNT(*) FROM clients").fetchone()[0]
+        total_admin_users = connection.execute(
+            "SELECT COUNT(*) FROM admin_users"
+        ).fetchone()[0]
     return jsonify(
         {
             "status": "ok",
             "database": str(DB_PATH),
             "total_clients": total_clients,
+            "total_admin_users": total_admin_users,
+            "google_login_enabled": GOOGLE_OAUTH_ENABLED,
             "server_time": utc_now_iso(),
         }
     )
 
 
 @app.get("/api/admin/overview")
+@admin_session_required
 def api_admin_overview() -> Any:
     ensure_database()
     with get_connection() as connection:
@@ -325,6 +758,7 @@ def save_location(client_id: str) -> Any:
         accuracy = None
 
     provider = str(payload.get("provider", "")).strip()
+    device_model = str(payload.get("device_model", "")).strip()
     battery_percent_value = payload.get("battery_percent")
     try:
         battery_percent = int(battery_percent_value) if battery_percent_value is not None else None
@@ -341,7 +775,7 @@ def save_location(client_id: str) -> Any:
     ensure_database()
     with get_connection() as connection:
         client_row = connection.execute(
-            "SELECT id, auth_token FROM clients WHERE id = ?",
+            "SELECT id, auth_token, device_model FROM clients WHERE id = ?",
             (client_id,),
         ).fetchone()
         if client_row is None:
@@ -377,6 +811,7 @@ def save_location(client_id: str) -> Any:
             """
             UPDATE clients
             SET updated_at = ?,
+                device_model = ?,
                 last_seen_at = ?,
                 last_latitude = ?,
                 last_longitude = ?,
@@ -388,6 +823,7 @@ def save_location(client_id: str) -> Any:
             """,
             (
                 utc_now_iso(),
+                device_model or client_row["device_model"],
                 recorded_at,
                 latitude,
                 longitude,
@@ -404,6 +840,7 @@ def save_location(client_id: str) -> Any:
 
 
 @app.get("/api/clients")
+@admin_session_required
 def list_clients() -> Any:
     ensure_database()
     with get_connection() as connection:
@@ -422,6 +859,7 @@ def list_clients() -> Any:
 
 
 @app.get("/api/clients/<client_id>")
+@admin_session_required
 def get_client(client_id: str) -> Any:
     limit = request.args.get("limit", default=50, type=int)
     limit = max(1, min(limit, 200))
@@ -476,6 +914,7 @@ def get_client(client_id: str) -> Any:
 
 
 @app.patch("/api/clients/<client_id>")
+@admin_session_required
 def update_client(client_id: str) -> Any:
     try:
         payload = require_json()
@@ -533,6 +972,7 @@ def update_client(client_id: str) -> Any:
 
 
 @app.delete("/api/clients/<client_id>/history")
+@admin_session_required
 def clear_client_history(client_id: str) -> Any:
     ensure_database()
     with get_connection() as connection:
@@ -579,6 +1019,7 @@ def clear_client_history(client_id: str) -> Any:
 
 
 @app.delete("/api/clients/<client_id>")
+@admin_session_required
 def delete_client(client_id: str) -> Any:
     ensure_database()
     with get_connection() as connection:

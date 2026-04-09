@@ -9,6 +9,13 @@
 </head>
 <body class="{% if embedded %}embedded{% endif %}">
     <div class="page">
+        <div class="session-strip">
+            <span>Sesión iniciada:</span>
+            <strong>{{ admin_user.full_name }}</strong>
+            <span>({{ admin_user.email }})</span>
+            <a href="{{ url_for('logout') }}">Salir</a>
+        </div>
+
         <div class="masthead">
             <table class="masthead-table">
                 <tr>
