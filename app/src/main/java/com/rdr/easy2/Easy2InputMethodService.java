@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class Easy2InputMethodService extends InputMethodService {
     private final List<TextView> characterKeys = new ArrayList<>();
@@ -23,15 +24,19 @@ public class Easy2InputMethodService extends InputMethodService {
     private TextView hideKeyView;
     private TextView spaceKeyView;
     private TextView enterKeyView;
+    private TextView voiceKeyView;
+    private Easy2KeyboardVoiceGuide voiceGuide;
     private boolean shifted;
 
     @Override
     public View onCreateInputView() {
+        voiceGuide = new Easy2KeyboardVoiceGuide(this, keyboardRootView);
         keyboardRootView = new LinearLayout(this);
         keyboardRootView.setOrientation(LinearLayout.VERTICAL);
         keyboardRootView.setClipToPadding(false);
         keyboardRootView.setPadding(0, 0, 0, 0);
         handleView = null;
+        voiceGuide = new Easy2KeyboardVoiceGuide(this, keyboardRootView);
 
         addCharacterRow(new String[]{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"});
         addCharacterRow(new String[]{"q", "w", "e", "r", "t", "y", "u", "i", "o", "p"});
@@ -58,24 +63,37 @@ public class Easy2InputMethodService extends InputMethodService {
                 fifthRow,
                 getString(R.string.keyboard_hide),
                 1.45f,
-                view -> requestHideSelf(0)
+                view -> {
+                    voiceGuide.performKeyFeedback();
+                    voiceGuide.speakMessage(R.string.keyboard_spoken_hide);
+                    requestHideSelf(0);
+                }
         );
-        addCharacterKey(fifthRow, ",", 0.9f);
+        voiceKeyView = addActionKey(
+                fifthRow,
+                getString(R.string.keyboard_voice_off_label),
+                1.25f,
+                view -> toggleVoiceGuide()
+        );
+        addCharacterKey(fifthRow, ",", 0.82f);
         spaceKeyView = addActionKey(
                 fifthRow,
                 getString(R.string.keyboard_space),
-                3.4f,
-                view -> commitText(" ")
+                2.85f,
+                view -> handleCharacterPress(" ")
         );
-        addCharacterKey(fifthRow, ".", 0.9f);
+        addCharacterKey(fifthRow, ".", 0.82f);
         enterKeyView = addActionKey(
                 fifthRow,
                 getString(R.string.keyboard_enter),
-                1.45f,
+                1.35f,
                 view -> handleEnter()
         );
         keyboardRootView.addView(fifthRow);
 
+        if (voiceGuide != null) {
+            voiceGuide.refreshPreference();
+        }
         applyThemePalette();
         updateCharacterKeyLabels();
         return keyboardRootView;
@@ -84,8 +102,20 @@ public class Easy2InputMethodService extends InputMethodService {
     @Override
     public void onStartInputView(EditorInfo info, boolean restarting) {
         super.onStartInputView(info, restarting);
+        if (voiceGuide != null) {
+            voiceGuide.refreshPreference();
+        }
         applyThemePalette();
         updateCharacterKeyLabels();
+    }
+
+    @Override
+    public void onDestroy() {
+        if (voiceGuide != null) {
+            voiceGuide.release();
+            voiceGuide = null;
+        }
+        super.onDestroy();
     }
 
     private void addCharacterRow(String[] keys) {
@@ -103,12 +133,7 @@ public class Easy2InputMethodService extends InputMethodService {
     private void addCharacterKey(LinearLayout row, String value, float weight) {
         TextView keyView = createBaseKey(weight);
         keyView.setTag(value);
-        keyView.setOnClickListener(view -> {
-            if (isNumericEditor() && !isNumericValue(value)) {
-                return;
-            }
-            commitText(shifted && isAlphabeticValue(value) ? value.toUpperCase() : value);
-        });
+        keyView.setOnClickListener(view -> handleCharacterPress((String) view.getTag()));
         row.addView(keyView);
         characterKeys.add(keyView);
     }
@@ -173,6 +198,18 @@ public class Easy2InputMethodService extends InputMethodService {
         Easy2KeyboardStyler.styleHideKey(hideKeyView, palette);
         Easy2KeyboardStyler.styleDeleteKey(deleteKeyView);
         Easy2KeyboardStyler.styleShiftKey(shiftKeyView, palette, shifted);
+        Easy2KeyboardStyler.styleVoiceKey(
+                voiceKeyView,
+                palette,
+                voiceGuide != null && voiceGuide.isEnabled()
+        );
+        if (voiceKeyView != null) {
+            voiceKeyView.setText(getString(
+                    voiceGuide != null && voiceGuide.isEnabled()
+                            ? R.string.keyboard_voice_on_label
+                            : R.string.keyboard_voice_off_label
+            ));
+        }
     }
 
     private void commitText(String text) {
@@ -192,6 +229,10 @@ public class Easy2InputMethodService extends InputMethodService {
     }
 
     private void handleEnter() {
+        if (voiceGuide != null) {
+            voiceGuide.performKeyFeedback();
+            voiceGuide.speakMessage(R.string.keyboard_spoken_enter);
+        }
         if (sendDefaultEditorAction(true)) {
             return;
         }
@@ -200,8 +241,52 @@ public class Easy2InputMethodService extends InputMethodService {
 
     private void toggleShift() {
         shifted = !shifted;
+        if (voiceGuide != null) {
+            voiceGuide.performKeyFeedback();
+            voiceGuide.speakMessage(
+                    shifted
+                            ? R.string.keyboard_spoken_shift_on
+                            : R.string.keyboard_spoken_shift_off
+            );
+        }
         applyThemePalette();
         updateCharacterKeyLabels();
+    }
+
+    private void handleCharacterPress(String value) {
+        if (value == null || value.isEmpty()) {
+            return;
+        }
+
+        if (isNumericEditor() && !isNumericValue(value)) {
+            if (voiceGuide != null) {
+                voiceGuide.performKeyFeedback();
+                voiceGuide.speakMessage(R.string.keyboard_numbers_only);
+            }
+            return;
+        }
+
+        String textToCommit = shifted && isAlphabeticValue(value)
+                ? value.toUpperCase(Locale.getDefault())
+                : value.toLowerCase(Locale.getDefault());
+        commitText(textToCommit);
+        if (voiceGuide != null) {
+            voiceGuide.performKeyFeedback();
+            voiceGuide.speakTypedValue(textToCommit);
+        }
+    }
+
+    private void toggleVoiceGuide() {
+        if (voiceGuide == null) {
+            return;
+        }
+
+        voiceGuide.performKeyFeedback();
+        boolean enabled = voiceGuide.toggleEnabled();
+        if (enabled) {
+            voiceGuide.performKeyFeedback();
+        }
+        applyThemePalette();
     }
 
     private void updateCharacterKeyLabels() {

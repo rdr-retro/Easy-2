@@ -14,6 +14,7 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public final class Easy2KeyboardController {
     private final Activity activity;
@@ -22,6 +23,7 @@ public final class Easy2KeyboardController {
     private final int originalInsetBottom;
     private final List<EditText> attachedInputs = new ArrayList<>();
     private final List<TextView> characterKeys = new ArrayList<>();
+    private final Easy2KeyboardVoiceGuide voiceGuide;
 
     private View handleView;
     private TextView shiftKeyView;
@@ -29,6 +31,7 @@ public final class Easy2KeyboardController {
     private TextView deleteKeyView;
     private TextView spaceKeyView;
     private TextView enterKeyView;
+    private TextView voiceKeyView;
     private EditText currentInput;
     private boolean shifted;
     private int visibleInsetBottom;
@@ -38,7 +41,9 @@ public final class Easy2KeyboardController {
         this.keyboardContainer = keyboardContainer;
         this.insetTarget = insetTarget;
         this.originalInsetBottom = insetTarget.getPaddingBottom();
+        this.voiceGuide = new Easy2KeyboardVoiceGuide(activity, keyboardContainer);
         buildKeyboard();
+        refreshVoiceGuide();
         hide();
     }
 
@@ -72,7 +77,17 @@ public final class Easy2KeyboardController {
         Easy2KeyboardStyler.styleHideKey(hideKeyView, palette);
         Easy2KeyboardStyler.styleDeleteKey(deleteKeyView);
         updateShiftKeyTheme(palette);
+        updateVoiceKeyTheme(palette);
         updateCharacterKeyLabels();
+    }
+
+    public void refreshVoiceGuide() {
+        voiceGuide.refreshPreference();
+        updateVoiceKeyTheme(LauncherThemePalette.fromPreferences(activity));
+    }
+
+    public void release() {
+        voiceGuide.release();
     }
 
     public void hide() {
@@ -128,20 +143,30 @@ public final class Easy2KeyboardController {
                 fifthRow,
                 activity.getString(R.string.keyboard_hide),
                 1.45f,
-                view -> clearFocusAndHide()
+                view -> {
+                    voiceGuide.performKeyFeedback();
+                    voiceGuide.speakMessage(R.string.keyboard_spoken_hide);
+                    clearFocusAndHide();
+                }
         );
-        addCharacterKey(fifthRow, ",", 0.9f);
+        voiceKeyView = addActionKey(
+                fifthRow,
+                activity.getString(R.string.keyboard_voice_off_label),
+                1.25f,
+                view -> toggleVoiceGuide()
+        );
+        addCharacterKey(fifthRow, ",", 0.82f);
         spaceKeyView = addActionKey(
                 fifthRow,
                 activity.getString(R.string.keyboard_space),
-                3.4f,
-                view -> insertCharacter(" ")
+                2.85f,
+                view -> handleCharacterPress(" ")
         );
-        addCharacterKey(fifthRow, ".", 0.9f);
+        addCharacterKey(fifthRow, ".", 0.82f);
         enterKeyView = addActionKey(
                 fifthRow,
                 activity.getString(R.string.keyboard_enter),
-                1.45f,
+                1.35f,
                 view -> handleEnter()
         );
         keyboardContainer.addView(fifthRow);
@@ -162,7 +187,7 @@ public final class Easy2KeyboardController {
     private void addCharacterKey(LinearLayout row, String value, float weight) {
         TextView keyView = createBaseKey(weight);
         keyView.setTag(value);
-        keyView.setOnClickListener(view -> insertCharacter((String) view.getTag()));
+        keyView.setOnClickListener(view -> handleCharacterPress((String) view.getTag()));
         row.addView(keyView);
         characterKeys.add(keyView);
     }
@@ -211,9 +236,11 @@ public final class Easy2KeyboardController {
 
     private void showFor(EditText editText) {
         currentInput = editText;
+        refreshVoiceGuide();
         hideSystemKeyboard();
         keyboardContainer.setVisibility(View.VISIBLE);
         keyboardContainer.post(this::updateVisibleInset);
+        voiceGuide.announceInput(editText);
     }
 
     private void hideIfNoInputHasFocus() {
@@ -243,19 +270,23 @@ public final class Easy2KeyboardController {
         return false;
     }
 
-    private void insertCharacter(String value) {
+    private void handleCharacterPress(String value) {
         if (currentInput == null || value == null || value.isEmpty()) {
             return;
         }
 
         if (isNumericField(currentInput) && !isNumericValue(value)) {
+            voiceGuide.performKeyFeedback();
+            voiceGuide.speakMessage(R.string.keyboard_numbers_only);
             return;
         }
 
         String textToInsert = shifted && isAlphabeticValue(value)
-                ? value.toUpperCase()
-                : value.toLowerCase();
+                ? value.toUpperCase(Locale.getDefault())
+                : value.toLowerCase(Locale.getDefault());
         replaceSelection(textToInsert);
+        voiceGuide.performKeyFeedback();
+        voiceGuide.speakTypedValue(textToInsert);
     }
 
     private void deleteCharacter() {
@@ -273,11 +304,15 @@ public final class Easy2KeyboardController {
 
         if (start != end) {
             editable.delete(Math.min(start, end), Math.max(start, end));
+            voiceGuide.performKeyFeedback();
+            voiceGuide.speakMessage(R.string.keyboard_spoken_delete);
             return;
         }
 
         if (start > 0) {
             editable.delete(start - 1, start);
+            voiceGuide.performKeyFeedback();
+            voiceGuide.speakMessage(R.string.keyboard_spoken_delete);
         }
     }
 
@@ -286,6 +321,8 @@ public final class Easy2KeyboardController {
             return;
         }
 
+        voiceGuide.performKeyFeedback();
+        voiceGuide.speakMessage(R.string.keyboard_spoken_enter);
         if (isNumericField(currentInput) || !isMultilineField(currentInput)) {
             moveToNextInput();
             return;
@@ -324,6 +361,12 @@ public final class Easy2KeyboardController {
 
     private void toggleShift() {
         shifted = !shifted;
+        voiceGuide.performKeyFeedback();
+        voiceGuide.speakMessage(
+                shifted
+                        ? R.string.keyboard_spoken_shift_on
+                        : R.string.keyboard_spoken_shift_off
+        );
         updateCharacterKeyLabels();
         updateShiftKeyTheme(LauncherThemePalette.fromPreferences(activity));
     }
@@ -345,6 +388,29 @@ public final class Easy2KeyboardController {
 
     private void updateShiftKeyTheme(LauncherThemePalette palette) {
         Easy2KeyboardStyler.styleShiftKey(shiftKeyView, palette, shifted);
+    }
+
+    private void updateVoiceKeyTheme(LauncherThemePalette palette) {
+        if (voiceKeyView == null || palette == null) {
+            return;
+        }
+
+        boolean voiceEnabled = voiceGuide.isEnabled();
+        voiceKeyView.setText(activity.getString(
+                voiceEnabled
+                        ? R.string.keyboard_voice_on_label
+                        : R.string.keyboard_voice_off_label
+        ));
+        Easy2KeyboardStyler.styleVoiceKey(voiceKeyView, palette, voiceEnabled);
+    }
+
+    private void toggleVoiceGuide() {
+        voiceGuide.performKeyFeedback();
+        boolean enabled = voiceGuide.toggleEnabled();
+        if (enabled) {
+            voiceGuide.performKeyFeedback();
+        }
+        updateVoiceKeyTheme(LauncherThemePalette.fromPreferences(activity));
     }
 
     private boolean isNumericField(EditText editText) {

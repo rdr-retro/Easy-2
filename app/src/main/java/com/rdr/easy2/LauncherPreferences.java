@@ -20,6 +20,7 @@ public final class LauncherPreferences {
     private static final String KEY_THEME_COLOR = "theme_color";
     private static final String KEY_MEDICAL_INFO = "medical_info";
     private static final String KEY_NOTE_TEXT = "note_text";
+    private static final String KEY_KEYBOARD_VOICE_GUIDE_ENABLED = "keyboard_voice_guide_enabled";
     private static final String KEY_PINNED_CONTACT_KEYS = "pinned_contact_keys";
     private static final String KEY_PINNED_CONTACT_NAMES = "pinned_contact_names";
     private static final String KEY_USER_MODE = "user_mode";
@@ -129,6 +130,16 @@ public final class LauncherPreferences {
 
     public static String getNoteText(Context context) {
         return getPreferences(context).getString(KEY_NOTE_TEXT, "");
+    }
+
+    public static boolean isKeyboardVoiceGuideEnabled(Context context) {
+        return getPreferences(context).getBoolean(KEY_KEYBOARD_VOICE_GUIDE_ENABLED, false);
+    }
+
+    public static void setKeyboardVoiceGuideEnabled(Context context, boolean enabled) {
+        getPreferences(context).edit()
+                .putBoolean(KEY_KEYBOARD_VOICE_GUIDE_ENABLED, enabled)
+                .apply();
     }
 
     public static void saveNoteText(Context context, String noteText) {

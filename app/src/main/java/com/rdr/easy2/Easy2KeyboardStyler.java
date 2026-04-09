@@ -96,6 +96,36 @@ public final class Easy2KeyboardStyler {
         );
     }
 
+    public static void styleVoiceKey(
+            TextView keyView,
+            LauncherThemePalette palette,
+            boolean enabled
+    ) {
+        if (keyView == null || palette == null) {
+            return;
+        }
+
+        if (enabled) {
+            int fillColor = palette.isDarkMode()
+                    ? blend(palette.getPrimaryColor(), Color.WHITE, 0.12f)
+                    : palette.getPrimaryColor();
+            styleKey(keyView, Color.WHITE, fillColor, withAlpha(Color.WHITE, 56));
+            return;
+        }
+
+        int fillColor = blend(
+                palette.getChipColor(),
+                palette.getSetupContactFillColor(),
+                palette.isDarkMode() ? 0.18f : 0.44f
+        );
+        styleKey(
+                keyView,
+                getReadableTextColor(fillColor),
+                fillColor,
+                withAlpha(palette.getPrimaryColor(), palette.isDarkMode() ? 78 : 44)
+        );
+    }
+
     public static void styleDeleteKey(TextView keyView) {
         if (keyView == null) {
             return;
