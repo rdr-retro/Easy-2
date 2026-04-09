@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Easy 2 Admin</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body class="{% if embedded %}embedded{% endif %}">
+    <div class="page">
+        <header class="header">
+            <div>
+                <p class="eyebrow">Easy 2</p>
+                <h1>Panel de clientes</h1>
+                <p class="subtitle">Clientes conectados y ubicación en tiempo casi real.</p>
+            </div>
+            <div class="header-actions">
+                <span id="connection-pill" class="pill">Esperando datos</span>
+                <button id="refresh-button" class="button" type="button">Actualizar</button>
+            </div>
+        </header>
+
+        <main class="grid">
+            <aside class="sidebar">
+                <section class="panel">
+                    <h2>Clientes</h2>
+                    <p class="panel-help">Pulsa un cliente para ver el mapa y sus últimas posiciones.</p>
+                    <div id="clients-list" class="clients-list"></div>
+                </section>
+            </aside>
+
+            <section class="content">
+                <section class="panel">
+                    <div class="client-header">
+                        <div>
+                            <h2 id="client-name">Sin cliente seleccionado</h2>
+                            <p id="client-meta" class="panel-help">Cuando un teléfono cliente se registre aparecerá aquí.</p>
+                        </div>
+                        <div class="client-actions">
+                            <a id="open-maps-link" class="button secondary hidden" href="#" target="_blank" rel="noreferrer">Abrir en mapa</a>
+                        </div>
+                    </div>
+                    <dl class="details" id="client-details"></dl>
+                </section>
+
+                <section class="panel map-panel">
+                    <div id="map"></div>
+                </section>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        window.EASY2_DASHBOARD = {
+            embedded: {{ 'true' if embedded else 'false' }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
