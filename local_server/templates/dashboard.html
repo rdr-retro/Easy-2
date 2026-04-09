@@ -9,46 +9,164 @@
 </head>
 <body class="{% if embedded %}embedded{% endif %}">
     <div class="page">
-        <header class="header">
-            <div>
-                <p class="eyebrow">Easy 2</p>
-                <h1>Panel de clientes</h1>
-                <p class="subtitle">Clientes conectados y ubicación en tiempo casi real.</p>
-            </div>
-            <div class="header-actions">
-                <span id="connection-pill" class="pill">Esperando datos</span>
-                <button id="refresh-button" class="button" type="button">Actualizar</button>
-            </div>
-        </header>
+        <div class="session-strip">
+            <span>Sesión iniciada:</span>
+            <strong>{{ admin_user.full_name }}</strong>
+            <span>({{ admin_user.email }})</span>
+            <a href="{{ url_for('logout') }}">Salir</a>
+        </div>
 
-        <main class="grid">
-            <aside class="sidebar">
-                <section class="panel">
-                    <h2>Clientes</h2>
-                    <p class="panel-help">Pulsa un cliente para ver el mapa y sus últimas posiciones.</p>
-                    <div id="clients-list" class="clients-list"></div>
-                </section>
-            </aside>
+        <div class="masthead">
+            <table class="masthead-table">
+                <tr>
+                    <td class="masthead-copy">
+                        <div class="site-line">Easy 2 Server / panel casero</div>
+                        <h1>Panel del administrador</h1>
+                        <p class="lead">
+                            Vista simple para revisar clientes, ubicaciones y cambios sin adornos raros.
+                        </p>
+                    </td>
+                    <td class="masthead-tools">
+                        <div id="connection-pill" class="pill">Conectando...</div>
+                        <p class="tool-row">
+                            <button id="refresh-button" class="button" type="button">Actualizar</button>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
-            <section class="content">
-                <section class="panel">
-                    <div class="client-header">
-                        <div>
+        <table class="summary-table" cellspacing="0" cellpadding="0">
+            <tr>
+                <th>Clientes</th>
+                <th>En linea</th>
+                <th>Ubicaciones</th>
+                <th>Base de datos</th>
+            </tr>
+            <tr>
+                <td>
+                    <strong id="stat-total-clients">0</strong>
+                    <div id="stat-newest-client" class="small-note">Sin registros</div>
+                </td>
+                <td>
+                    <strong id="stat-online-clients">0</strong>
+                    <div id="stat-offline-clients" class="small-note">0 sin conexion</div>
+                </td>
+                <td>
+                    <strong id="stat-total-locations">0</strong>
+                    <div id="stat-last-sync" class="small-note">Sin sincronizar</div>
+                </td>
+                <td>
+                    <strong id="stat-clients-with-location">0</strong>
+                    <div id="stat-database-path" class="small-note">Sin ruta</div>
+                </td>
+            </tr>
+        </table>
+
+        <table class="layout-table" cellspacing="0" cellpadding="0">
+            <tr>
+                <td class="left-column">
+                    <fieldset class="box">
+                        <legend>Clientes</legend>
+                        <p class="section-help">Busca y filtra la lista antes de abrir una ficha.</p>
+
+                        <label class="label-line" for="client-search">Buscar cliente</label>
+                        <input id="client-search" type="search" placeholder="Nombre, modelo o ID">
+
+                        <div class="filter-row" id="filter-row">
+                            <button class="filter-chip active" type="button" data-filter="all">Todos</button>
+                            <button class="filter-chip" type="button" data-filter="online">En linea</button>
+                            <button class="filter-chip" type="button" data-filter="offline">Sin conexion</button>
+                        </div>
+
+                        <div id="clients-list" class="clients-list"></div>
+                    </fieldset>
+
+                    <fieldset class="box">
+                        <legend>Actividad reciente</legend>
+                        <p class="section-help">Ultimos puntos recibidos por el servidor.</p>
+                        <div id="recent-activity" class="activity-list"></div>
+                    </fieldset>
+                </td>
+
+                <td class="right-column">
+                    <fieldset class="box">
+                        <legend>Ficha del cliente</legend>
+
+                        <div class="client-head">
                             <h2 id="client-name">Sin cliente seleccionado</h2>
-                            <p id="client-meta" class="panel-help">Cuando un teléfono cliente se registre aparecerá aquí.</p>
+                            <p id="client-meta" class="section-help">Cuando un telefono cliente se registre aparecera aqui.</p>
                         </div>
-                        <div class="client-actions">
-                            <a id="open-maps-link" class="button secondary hidden" href="#" target="_blank" rel="noreferrer">Abrir en mapa</a>
-                        </div>
-                    </div>
-                    <dl class="details" id="client-details"></dl>
-                </section>
 
-                <section class="panel map-panel">
-                    <div id="map"></div>
-                </section>
-            </section>
-        </main>
+                        <table class="detail-table" cellspacing="0" cellpadding="0">
+                            <tr>
+                                <th>Coordenadas</th>
+                                <th>Precision</th>
+                                <th>Bateria</th>
+                                <th>Historico</th>
+                            </tr>
+                            <tr>
+                                <td id="detail-coordinates">Sin posicion</td>
+                                <td id="detail-accuracy">Sin dato</td>
+                                <td id="detail-battery">Sin dato</td>
+                                <td id="detail-history">0 puntos</td>
+                            </tr>
+                        </table>
+
+                        <div class="client-actions">
+                            <a id="open-maps-link" class="button hidden" href="#" target="_blank" rel="noreferrer">Abrir mapa</a>
+                            <button id="clear-history-button" class="button hidden" type="button">Borrar historico</button>
+                            <button id="delete-client-button" class="button danger hidden" type="button">Eliminar cliente</button>
+                        </div>
+
+                        <form id="client-form" class="admin-form hidden">
+                            <table class="form-table" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td>
+                                        <label class="label-line" for="client-display-name-input">Nombre visible</label>
+                                        <input id="client-display-name-input" type="text" maxlength="80" placeholder="Cliente Easy 2">
+                                    </td>
+                                    <td>
+                                        <label class="label-line" for="client-age-input">Edad</label>
+                                        <input id="client-age-input" type="text" maxlength="16" placeholder="Edad">
+                                    </td>
+                                </tr>
+                            </table>
+                            <p class="form-bar">
+                                <button id="save-client-button" class="button" type="submit">Guardar cambios</button>
+                                <span id="form-status" class="form-status">Selecciona un cliente para editarlo.</span>
+                            </p>
+                        </form>
+                    </fieldset>
+
+                    <fieldset class="box">
+                        <legend>Mapa y recorrido</legend>
+                        <p class="section-help">Se dibuja la ruta reciente del cliente seleccionado.</p>
+                        <div id="map"></div>
+                    </fieldset>
+
+                    <fieldset class="box">
+                        <legend>Historico reciente</legend>
+                        <table class="history-table" cellspacing="0" cellpadding="0">
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Posicion</th>
+                                    <th>Precision</th>
+                                    <th>Bateria</th>
+                                    <th>Proveedor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <tr>
+                                    <td colspan="5" class="table-empty">Selecciona un cliente para ver su historico.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </fieldset>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

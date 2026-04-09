@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acceso administrador - Easy 2</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body{% if embedded %} class="embedded"{% endif %}>
+    <div class="page login-page">
+        <div class="masthead">
+            <div class="site-line">Easy 2 Server / acceso administrador</div>
+            <h1>{{ login_copy.title }}</h1>
+            <p class="lead">
+                {{ login_copy.lead }}
+            </p>
+        </div>
+
+        <fieldset class="box login-box">
+            <legend>Cuenta</legend>
+
+            {% if notice %}
+            <div class="login-message {% if notice.type == 'error' %}login-message-error{% endif %}">
+                {{ notice.text }}
+            </div>
+            {% endif %}
+
+            <div class="login-choice-grid">
+                <div class="login-choice-card">
+                    <div class="login-choice-title">Crear cuenta</div>
+                    <p class="section-help login-choice-copy">
+                        Si tu correo está autorizado, Easy 2 creará tu cuenta al entrar con Google.
+                    </p>
+                </div>
+                <div class="login-choice-card">
+                    <div class="login-choice-title">Iniciar sesión</div>
+                    <p class="section-help login-choice-copy">
+                        Si ya tenías acceso, entrarás directamente sin volver a configurarte.
+                    </p>
+                </div>
+            </div>
+
+            <p class="section-help">
+                {{ signup_policy_summary }}
+            </p>
+            <p class="section-help">
+                Administradores creados hasta ahora: <strong>{{ admin_count }}</strong>
+            </p>
+
+            {% if embedded %}
+            <p class="section-help">
+                Si Google no deja iniciar sesión dentro de la app, abre esta misma dirección en el navegador del móvil.
+            </p>
+            {% endif %}
+
+            {% if oauth_enabled %}
+            <p class="tool-row">
+                <a class="google-signin-button" href="{{ url_for('auth_google', next=next_path) }}">
+                    <span class="google-signin-icon" aria-hidden="true">
+                        <svg viewBox="0 0 18 18" role="img" focusable="false">
+                            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.56 2.68-3.86 2.68-6.62Z"/>
+                            <path fill="#34A853" d="M9 18c2.43 0 4.46-.8 5.95-2.18l-2.92-2.26c-.81.54-1.84.86-3.03.86-2.33 0-4.31-1.57-5.02-3.68H1.96V13c1.48 2.94 4.52 5 7.04 5Z"/>
+                            <path fill="#FBBC05" d="M3.98 10.74A5.41 5.41 0 0 1 3.7 9c0-.6.1-1.18.28-1.74V5H1.96A9 9 0 0 0 1 9c0 1.45.35 2.82.96 4l2.02-2.26Z"/>
+                            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.33l2.58-2.58C13.45.9 11.42 0 9 0 5.48 0 2.44 2.06.96 5l3.02 2.26c.71-2.11 2.69-3.68 5.02-3.68Z"/>
+                        </svg>
+                    </span>
+                    <span class="google-signin-label">{{ login_copy.button }}</span>
+                </a>
+            </p>
+            <p class="section-help login-cta-help">
+                {{ login_copy.helper }}
+            </p>
+            {% else %}
+            <div class="login-message login-message-error">
+                Faltan <code>EASY2_GOOGLE_CLIENT_ID</code> y <code>EASY2_GOOGLE_CLIENT_SECRET</code> en el servidor.
+            </div>
+            {% endif %}
+        </fieldset>
+
+    </div>
+</body>
+</html>
