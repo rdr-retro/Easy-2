@@ -42,6 +42,13 @@ const state = {
 let historyPolyline = null;
 let marker = null;
 
+class LoginRequiredError extends Error {
+    constructor(message = "Necesitas iniciar sesión como administrador.") {
+        super(message);
+        this.name = "LoginRequiredError";
+    }
+}
+
 const map = L.map("map", {
     zoomControl: true,
 }).setView([40.4168, -3.7038], 5);
@@ -50,6 +57,31 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; OpenStreetMap contributors",
 }).addTo(map);
+
+function redirectToLogin() {
+    const next = `${window.location.pathname}${window.location.search}`;
+    window.location.href = `/login?next=${encodeURIComponent(next)}`;
+}
+
+async function fetchJson(url, options) {
+    const response = await fetch(url, options);
+    let payload = null;
+
+    try {
+        payload = await response.json();
+    } catch (error) {
+        payload = null;
+    }
+
+    if (response.status === 401) {
+        redirectToLogin();
+        throw new LoginRequiredError(
+            payload?.error || "Necesitas iniciar sesión como administrador."
+        );
+    }
+
+    return { response, payload };
+}
 
 refreshButton?.addEventListener("click", () => {
     void refreshDashboard();
@@ -81,7 +113,7 @@ clientForm?.addEventListener("submit", async (event) => {
 
     try {
         setFormStatus("Guardando cambios…", true);
-        const response = await fetch(`/api/clients/${encodeURIComponent(state.selectedClientId)}`, {
+        const { response, payload } = await fetchJson(`/api/clients/${encodeURIComponent(state.selectedClientId)}`, {
             method: "PATCH",
             headers: {
                 "Content-Type": "application/json",
@@ -91,7 +123,6 @@ clientForm?.addEventListener("submit", async (event) => {
                 age: ageInput?.value || "",
             }),
         });
-        const payload = await response.json();
         if (!response.ok) {
             throw new Error(payload.error || "No se pudo guardar el cliente.");
         }
@@ -117,10 +148,9 @@ clearHistoryButton?.addEventListener("click", async () => {
 
     try {
         setConnectionStatus("Borrando histórico…", true);
-        const response = await fetch(`/api/clients/${encodeURIComponent(state.selectedClientId)}/history`, {
+        const { response, payload } = await fetchJson(`/api/clients/${encodeURIComponent(state.selectedClientId)}/history`, {
             method: "DELETE",
         });
-        const payload = await response.json();
         if (!response.ok) {
             throw new Error(payload.error || "No se pudo borrar el histórico.");
         }
@@ -146,10 +176,9 @@ deleteClientButton?.addEventListener("click", async () => {
 
     try {
         setConnectionStatus("Eliminando cliente…", true);
-        const response = await fetch(`/api/clients/${encodeURIComponent(state.selectedClientId)}`, {
+        const { response, payload } = await fetchJson(`/api/clients/${encodeURIComponent(state.selectedClientId)}`, {
             method: "DELETE",
         });
-        const payload = await response.json();
         if (!response.ok) {
             throw new Error(payload.error || "No se pudo eliminar el cliente.");
         }
@@ -165,17 +194,18 @@ deleteClientButton?.addEventListener("click", async () => {
 
 async function refreshDashboard() {
     try {
-        const [overviewResponse, clientsResponse] = await Promise.all([
-            fetch("/api/admin/overview", { cache: "no-store" }),
-            fetch("/api/clients", { cache: "no-store" }),
+        const [overviewResult, clientsResult] = await Promise.all([
+            fetchJson("/api/admin/overview", { cache: "no-store" }),
+            fetchJson("/api/clients", { cache: "no-store" }),
         ]);
+        const overviewResponse = overviewResult.response;
+        const clientsResponse = clientsResult.response;
+        const overview = overviewResult.payload;
+        const clients = clientsResult.payload;
 
         if (!overviewResponse.ok || !clientsResponse.ok) {
             throw new Error("No se pudo cargar la web de administrador.");
         }
-
-        const overview = await overviewResponse.json();
-        const clients = await clientsResponse.json();
 
         state.clients = clients;
         renderOverview(overview);
@@ -191,6 +221,9 @@ async function refreshDashboard() {
 
         setConnectionStatus("Conectado", true);
     } catch (error) {
+        if (error instanceof LoginRequiredError) {
+            return;
+        }
         console.error(error);
         setConnectionStatus("Servidor no disponible", false);
     }
@@ -333,10 +366,9 @@ async function loadClientDetails(clientId) {
     }
 
     try {
-        const response = await fetch(`/api/clients/${encodeURIComponent(clientId)}?limit=100`, {
+        const { response, payload } = await fetchJson(`/api/clients/${encodeURIComponent(clientId)}?limit=100`, {
             cache: "no-store",
         });
-        const payload = await response.json();
         if (!response.ok) {
             throw new Error(payload.error || "No se pudo cargar el detalle del cliente.");
         }
@@ -346,6 +378,9 @@ async function loadClientDetails(clientId) {
         state.selectedMetrics = payload.metrics || null;
         renderClientDetails(payload.client, payload.history || [], payload.metrics || {});
     } catch (error) {
+        if (error instanceof LoginRequiredError) {
+            return;
+        }
         console.error(error);
         setFormStatus(error.message || "No se pudo cargar el cliente.", false);
     }

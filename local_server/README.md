@@ -32,6 +32,38 @@ El servidor escucha por defecto en `0.0.0.0:8000`.
 - Navegador: `http://IP_DEL_SERVIDOR:8000/admin`
 - Compatibilidad anterior: `http://IP_DEL_SERVIDOR:8000/dashboard`
 - La app Android en modo administrador abre la versión embebida de esta misma web.
+- Si no hay sesión iniciada, la web redirige a `/login`.
+
+## Login con Google
+
+La web del administrador puede crear cuenta y entrar usando Google OAuth.
+
+1. Crea un cliente OAuth 2.0 de tipo web en Google Cloud Console.
+2. Añade como redirect URI autorizada `http://IP_DEL_SERVIDOR:8000/auth/google/callback`.
+3. Si usas un dominio o una IP distinta, añade también esa URL real.
+4. Configura estas variables antes de arrancar el servidor:
+
+```bash
+export EASY2_GOOGLE_CLIENT_ID="tu-client-id"
+export EASY2_GOOGLE_CLIENT_SECRET="tu-client-secret"
+```
+
+Tambien puedes dejar el JSON descargado de Google en la raiz del proyecto con nombre tipo `client_secret_....json` y el servidor lo leerá automáticamente.
+
+Variables útiles:
+
+- `EASY2_GOOGLE_AUTO_CREATE=1`
+- `EASY2_ADMIN_ALLOWED_EMAILS=admin1@gmail.com,admin2@gmail.com`
+- `EASY2_ADMIN_ALLOWED_DOMAINS=tu-dominio.com`
+- `EASY2_GOOGLE_CLIENT_JSON=/ruta/al/client_secret_xxx.json`
+- `EASY2_PUBLIC_BASE_URL=http://192.168.1.50:8000`
+- `EASY2_SERVER_SECRET_KEY=una-clave-larga-y-fija`
+
+Notas:
+
+- Si `EASY2_GOOGLE_AUTO_CREATE` está activo y no limitas emails o dominios, cualquier cuenta de Google con email verificado podrá crear usuario administrador.
+- `EASY2_PUBLIC_BASE_URL` ayuda a generar la callback correcta cuando el servidor se publica con otra IP, otro puerto o un dominio.
+- Para cerrar sesión usa `/logout`.
 
 ## Cómo conectar el teléfono
 
@@ -51,6 +83,10 @@ El servidor escucha por defecto en `0.0.0.0:8000`.
 - `PATCH /api/clients/<client_id>`
 - `DELETE /api/clients/<client_id>/history`
 - `DELETE /api/clients/<client_id>`
+- `GET /login`
+- `GET /auth/google`
+- `GET /auth/google/callback`
+- `GET /logout`
 - `GET /admin`
 - `GET /dashboard`
 
@@ -58,3 +94,11 @@ El servidor escucha por defecto en `0.0.0.0:8000`.
 
 - `EASY2_SERVER_HOST`
 - `EASY2_SERVER_PORT`
+- `EASY2_GOOGLE_CLIENT_ID`
+- `EASY2_GOOGLE_CLIENT_SECRET`
+- `EASY2_GOOGLE_CLIENT_JSON`
+- `EASY2_PUBLIC_BASE_URL`
+- `EASY2_SERVER_SECRET_KEY`
+- `EASY2_GOOGLE_AUTO_CREATE`
+- `EASY2_ADMIN_ALLOWED_EMAILS`
+- `EASY2_ADMIN_ALLOWED_DOMAINS`

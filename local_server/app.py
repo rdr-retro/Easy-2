@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import secrets
 import sqlite3
@@ -14,6 +15,7 @@ from flask import Flask, jsonify, redirect, render_template, request, session, u
 
 
 BASE_DIR = Path(__file__).resolve().parent
+PROJECT_DIR = BASE_DIR.parent
 DATA_DIR = BASE_DIR / "data"
 DB_PATH = DATA_DIR / "easy2.db"
 SESSION_SECRET_PATH = DATA_DIR / "server_secret.txt"
@@ -45,16 +47,87 @@ def load_or_create_secret_key() -> str:
     return generated_secret
 
 
+def load_google_oauth_credentials() -> dict[str, str]:
+    client_id = os.environ.get("EASY2_GOOGLE_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("EASY2_GOOGLE_CLIENT_SECRET", "").strip()
+    json_path = os.environ.get("EASY2_GOOGLE_CLIENT_JSON", "").strip()
+
+    if client_id and client_secret:
+        return {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "json_path": "",
+        }
+
+    candidate_paths: list[Path] = []
+    if json_path:
+        candidate_paths.append(Path(json_path).expanduser())
+    else:
+        candidate_paths.extend(sorted(PROJECT_DIR.glob("client_secret_*.json")))
+        candidate_paths.extend(sorted(BASE_DIR.glob("client_secret_*.json")))
+
+    seen_paths: set[Path] = set()
+    for candidate_path in candidate_paths:
+        resolved_path = candidate_path.resolve()
+        if resolved_path in seen_paths or not resolved_path.is_file():
+            continue
+        seen_paths.add(resolved_path)
+
+        try:
+            payload = json.loads(resolved_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        web_payload = payload.get("web")
+        if not isinstance(web_payload, dict):
+            continue
+
+        json_client_id = str(web_payload.get("client_id", "")).strip()
+        json_client_secret = str(web_payload.get("client_secret", "")).strip()
+        redirect_uris = web_payload.get("redirect_uris")
+        json_redirect_uri = ""
+        if isinstance(redirect_uris, list) and redirect_uris:
+            json_redirect_uri = str(redirect_uris[0]).strip()
+        if not json_client_id or not json_client_secret:
+            continue
+
+        return {
+            "client_id": client_id or json_client_id,
+            "client_secret": client_secret or json_client_secret,
+            "json_path": str(resolved_path),
+            "redirect_uri": json_redirect_uri,
+        }
+
+    return {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "json_path": "",
+        "redirect_uri": "",
+    }
+
+
 app = Flask(__name__)
+google_oauth_credentials = load_google_oauth_credentials()
+configured_public_base_url = os.environ.get("EASY2_PUBLIC_BASE_URL", "").strip()
+configured_redirect_uri = google_oauth_credentials.get("redirect_uri", "").strip()
+derived_public_base_url = ""
+if not configured_public_base_url and configured_redirect_uri:
+    parsed_redirect_uri = urlparse(configured_redirect_uri)
+    if parsed_redirect_uri.scheme and parsed_redirect_uri.netloc:
+        derived_public_base_url = (
+            f"{parsed_redirect_uri.scheme}://{parsed_redirect_uri.netloc}"
+        )
 app.secret_key = load_or_create_secret_key()
 app.config.update(
     SESSION_COOKIE_NAME="easy2_admin_session",
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=timedelta(days=14),
-    GOOGLE_CLIENT_ID=os.environ.get("EASY2_GOOGLE_CLIENT_ID", "").strip(),
-    GOOGLE_CLIENT_SECRET=os.environ.get("EASY2_GOOGLE_CLIENT_SECRET", "").strip(),
-    PUBLIC_BASE_URL=os.environ.get("EASY2_PUBLIC_BASE_URL", "").strip(),
+    GOOGLE_CLIENT_ID=google_oauth_credentials["client_id"],
+    GOOGLE_CLIENT_SECRET=google_oauth_credentials["client_secret"],
+    GOOGLE_CLIENT_JSON_PATH=google_oauth_credentials["json_path"],
+    GOOGLE_REDIRECT_URI=configured_redirect_uri,
+    PUBLIC_BASE_URL=configured_public_base_url or derived_public_base_url,
 )
 
 oauth = OAuth(app)
@@ -198,6 +271,13 @@ def current_request_target() -> str:
     if query_string:
         return sanitize_next_value(f"{request.path}?{query_string}")
     return sanitize_next_value(request.path)
+
+
+def current_request_path_with_query() -> str:
+    query_string = request.query_string.decode("utf-8", errors="ignore").strip()
+    if query_string:
+        return f"{request.path}?{query_string}"
+    return request.path
 
 
 def sanitize_next_value(value: str | None) -> str:
@@ -380,6 +460,22 @@ def admin_session_required(view):
         return redirect(url_for("login", next=current_request_target()))
 
     return wrapped_view
+
+
+@app.before_request
+def redirect_localhost_alias_to_public_base() -> Any | None:
+    public_base_url = sanitize_base_url(app.config.get("PUBLIC_BASE_URL", ""))
+    if not public_base_url or request.method not in {"GET", "HEAD"}:
+        return None
+    if request.path.startswith("/api/"):
+        return None
+
+    public_base = urlparse(public_base_url)
+    request_hostname = (request.host.split(":", 1)[0] or "").strip().lower()
+    if public_base.hostname != "localhost" or request_hostname != "127.0.0.1":
+        return None
+
+    return redirect(public_base_url + current_request_path_with_query())
 
 
 @app.route("/")
