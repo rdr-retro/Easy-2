@@ -903,6 +903,9 @@ public class SetupActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        if (keyboardController != null && keyboardController.handleBackPressed()) {
+            return;
+        }
         if (currentStep > STEP_BASIC) {
             showStep(currentStep - 1);
             return;

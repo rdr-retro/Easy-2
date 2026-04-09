@@ -101,12 +101,18 @@ public final class Easy2KeyboardController {
     }
 
     public void clearFocusAndHide() {
-        if (currentInput != null) {
-            currentInput.clearFocus();
-        }
-        currentInput = null;
+        clearAttachedInputFocus();
         hideSystemKeyboard();
         hide();
+    }
+
+    public boolean handleBackPressed() {
+        if (!isVisible() && !hasFocusedInput()) {
+            return false;
+        }
+
+        clearFocusAndHide();
+        return true;
     }
 
     private void buildKeyboard() {
@@ -235,6 +241,22 @@ public final class Easy2KeyboardController {
         }
         currentInput = null;
         hide();
+    }
+
+    private void clearAttachedInputFocus() {
+        for (EditText editText : attachedInputs) {
+            editText.clearFocus();
+        }
+        currentInput = null;
+    }
+
+    private boolean hasFocusedInput() {
+        for (EditText editText : attachedInputs) {
+            if (editText.hasFocus()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void insertCharacter(String value) {
@@ -410,6 +432,10 @@ public final class Easy2KeyboardController {
         if (inputMethodManager != null && focusedView != null) {
             inputMethodManager.hideSoftInputFromWindow(focusedView.getWindowToken(), 0);
         }
+    }
+
+    private boolean isVisible() {
+        return keyboardContainer.getVisibility() == View.VISIBLE;
     }
 
     private int dpToPx(int dpValue) {
