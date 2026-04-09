@@ -1,172 +1,270 @@
 # Easy 2
 
-Easy 2 es una aplicación Android pensada para simplificar el uso del smartphone en personas mayores. La app convierte el teléfono en una experiencia más clara, segura y guiada mediante un launcher propio, llamadas simplificadas, accesos rápidos y utilidades cotidianas.
+<div align="center">
 
-## Resumen
+### Un smartphone menos hostil, más humano y realmente usable para personas mayores
 
-Los smartphones suelen concentrar demasiadas opciones, iconos pequeños y flujos complejos. Easy 2 propone una alternativa centrada en la accesibilidad:
+<p>
+  <img src="https://img.shields.io/badge/Android-App-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android App">
+  <img src="https://img.shields.io/badge/Java-App-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java App">
+  <img src="https://img.shields.io/badge/MVP-Funcional-111111?style=for-the-badge" alt="MVP funcional">
+  <img src="https://img.shields.io/badge/Focus-Accesibilidad%20real-2457F5?style=for-the-badge" alt="Accesibilidad real">
+</p>
 
-- interfaz principal limpia y en pantalla completa
-- información esencial visible de un vistazo
-- contactos importantes siempre a mano
-- configuración guiada paso a paso
-- herramientas útiles integradas en el mismo entorno
+</div>
 
-## Propuesta de valor
+> Easy 2 transforma un móvil Android convencional en una experiencia clara, segura y guiada, diseñada para reducir fricción, aumentar autonomía y devolver confianza digital a personas mayores.
 
-Easy 2 busca mejorar la autonomía digital de personas mayores o usuarios con baja familiaridad tecnológica. En lugar de obligar a adaptarse al móvil tradicional, adapta el móvil a las necesidades del usuario.
+---
 
-Sus pilares son:
+## El problema
 
-- simplicidad: menos pasos para hacer tareas frecuentes
-- seguridad: SOS, información médica y contactos prioritarios
-- personalización: nombre, edad, color del tema y accesos directos
-- accesibilidad: botones grandes, textos claros y navegación directa
+Los smartphones actuales están optimizados para usuarios expertos: interfaces densas, demasiadas opciones, flujos largos, iconos pequeños y decisiones constantes.
 
-## Funcionalidades principales
+Para muchas personas mayores, eso no es una molestia menor. Es una barrera directa.
+
+Easy 2 nace para resolver eso desde la raíz: no añadiendo una capa visual encima del caos, sino replanteando la experiencia completa del dispositivo.
+
+## La idea en una frase
+
+**Si usar un smartphone exige aprender demasiadas cosas, entonces el problema no es la persona: es la interfaz.**
+
+## Qué hace diferente a Easy 2
+
+- **No es solo una app:** puede actuar como launcher, marcador, teclado y capa principal de interacción.
+- **No simplifica solo la estética:** simplifica decisiones, pasos, errores y puntos de bloqueo.
+- **No depende del cloud para su núcleo:** la experiencia principal funciona desde el propio dispositivo.
+- **No piensa solo en el usuario final:** incorpora un modo administrador con panel web local para acompañamiento y supervisión.
+
+---
+
+## TL;DR para jueces
+
+- **Impacto social claro:** resuelve una fricción real de accesibilidad digital.
+- **Ambición técnica alta:** launcher, dialer, `InCallService`, teclado propio, sensores, cámara, ubicación y panel local.
+- **Producto coherente:** todo está integrado en una misma experiencia, no son features sueltas.
+- **Demo potente:** en pocos minutos se entiende, se siente y se recuerda.
+
+---
+
+## Experiencia de producto
 
 ### 1. Launcher accesible
 
-La pantalla principal funciona como launcher del dispositivo e integra:
+La pantalla principal sustituye el arranque clásico por una interfaz limpia, grande y directa.
+
+Incluye:
 
 - hora y fecha en gran tamaño
 - batería y estado de carga
 - clima actual según ubicación
 - nombre y edad del usuario
-- accesos directos a aplicaciones favoritas
-- acceso rápido a información médica, ajustes y SOS
+- accesos directos visibles
+- acceso inmediato a ajustes, SOS, información médica y utilidades
 
-### 2. Configuración inicial guiada
+### 2. Configuración guiada
 
-La app incluye un flujo de onboarding en 4 pasos para dejar el teléfono listo:
+Easy 2 incorpora un onboarding en pasos cortos para dejar el teléfono listo sin menús confusos.
+
+Permite configurar:
 
 - datos personales
-- elección de color del tema
+- color del tema
 - información médica
-- selección de 4 contactos principales
+- contactos prioritarios
+- servidor remoto opcional para modo administrador
 
-También permite editar la configuración más adelante, ordenar accesos directos y abrir ajustes del teléfono o del teclado.
+### 3. Llamadas realmente simples
 
-### 3. Contactos prioritarios y llamadas sencillas
+La app rediseña la comunicación para eliminar fricción en una acción crítica.
 
-Easy 2 muestra los contactos en una cuadrícula visual y permite:
+Incluye:
 
-- priorizar 4 contactos clave
-- personalizar su imagen
-- elegir entre varios números si un contacto tiene más de uno
-- confirmar la llamada antes de iniciarla
-
-Además, incorpora:
-
+- contactos favoritos en formato visual
+- elección de número cuando un contacto tiene varios
+- confirmación antes de llamar
 - marcador propio
-- acceso rápido a emergencias
-- pantalla de llamada en curso
-- integración con `InCallService` para una experiencia de llamada más controlada
+- integración con `InCallService`
+- acceso rápido a emergencia
 
-### 4. Utilidades integradas
+### 4. Utilidades útiles de verdad
 
-Desde la pantalla principal se puede abrir un panel de utilidades con:
+En lugar de llenar la interfaz con decenas de herramientas, Easy 2 integra solo lo que aporta valor inmediato:
 
 - calendario de lectura sencilla
 - bloc de notas persistente
-- escáner de alimentos
-
-El escáner usa la cámara para leer códigos de barras y, si el código incluye una fecha GS1, muestra la fecha de caducidad o de consumo preferente.
+- escáner de alimentos con lectura de códigos de barras
+- interpretación de fechas GS1 cuando están presentes en el código
 
 ### 5. Teclado propio
 
-La app incluye un teclado personalizado con teclas grandes, pensado para acompañar el flujo accesible de configuración y edición de notas.
+El proyecto incluye un teclado personalizado orientado a legibilidad y control, pensado para acompañar el resto de la experiencia accesible.
 
-### 6. Despertar por movimiento
+### 6. Activación por movimiento
 
-Easy 2 incorpora un servicio en segundo plano que detecta cuándo el usuario coge el teléfono para encender la pantalla y mostrar el launcher.
+Easy 2 detecta cuándo el usuario coge el dispositivo y reactiva la pantalla para mostrar el launcher sin pasos extra.
 
-## Diferenciales del proyecto
+### 7. Panel de administrador local
 
-- No depende de un backend propio para funcionar en su núcleo.
-- Combina accesibilidad, personalización y utilidades en una sola app.
-- Aprovecha capacidades nativas de Android como launcher, teclado, marcador y servicios de llamada.
-- Propone una experiencia enfocada en autonomía, no solo en interfaz visual.
+Además de la app Android, el proyecto incluye un servidor local opcional para registrar dispositivos cliente y visualizar información desde una web de administración.
+
+Ese panel permite:
+
+- alta de dispositivos
+- recepción de ubicación
+- historial de actividad
+- panel web embebido en la app de administrador
+- autenticación con Google en la interfaz web local
+
+---
+
+## Por qué esto impresiona en una hackathon
+
+Easy 2 no se queda en una demo bonita. Toca varias capas complejas del ecosistema Android y las unifica en un mismo producto:
+
+- experiencia de launcher
+- flujo de llamadas
+- teclado personalizado
+- gestión de permisos delicados
+- integración de cámara y ML Kit
+- uso de sensores y ubicación
+- almacenamiento local
+- panel de administración local con backend propio
+
+**Eso convierte el proyecto en una propuesta completa, no en una simple feature aislada.**
+
+---
+
+## Qué problema resuelve para el usuario
+
+| Necesidad real | Cómo responde Easy 2 |
+|---|---|
+| Ver información importante sin buscarla | Launcher claro, a pantalla completa y con jerarquía visual |
+| Llamar rápido y sin errores | Contactos prioritarios, confirmación y marcador simplificado |
+| No perderse en ajustes complejos | Configuración guiada paso a paso |
+| Recordar información crítica | Acceso rápido a datos médicos y notas |
+| Usar el móvil con menos ansiedad | Botones grandes, menos decisiones y navegación directa |
+| Acompañamiento por parte de familiares o cuidadores | Modo administrador con panel local opcional |
+
+---
+
+## Arquitectura del proyecto
+
+### App Android
+
+Piezas principales:
+
+- `MainActivity`: launcher principal
+- `SetupActivity`: onboarding y configuración
+- `DialerActivity`, `CallConfirmationActivity`, `CallActivity`: flujo de llamadas
+- `Easy2InCallService`: UI propia para llamadas del sistema
+- `UtilitiesActivity`: entrada a utilidades
+- `SeniorCalendarActivity`: calendario simplificado
+- `NotesActivity`: notas persistentes
+- `FoodScannerActivity` + `Gs1DateParser`: escáner y lectura de fechas
+- `Easy2InputMethodService`: teclado personalizado
+- `PickupMonitorService`: detección de movimiento
+- `LauncherPreferences` y `ShortcutStorage`: persistencia y personalización
+- `AdminActivity`: acceso embebido al panel web del administrador
+
+### Backend local opcional
+
+El directorio `local_server/` aporta una capa de acompañamiento y supervisión:
+
+- API HTTP para registrar clientes
+- SQLite para persistencia local
+- dashboard web para administración
+- autenticación con Google en la web
+- integración con la app Android en modo administrador
+
+---
 
 ## Stack técnico
 
-- Java 11
+### Android
+
+- Java
 - Android SDK
 - AndroidX AppCompat
 - RecyclerView
 - Material Components
 - CameraX
 - ML Kit Barcode Scanning
-- `SharedPreferences` para persistencia local
-- almacenamiento interno para imágenes personalizadas de contactos
-- Open-Meteo para el clima en tiempo real
-- `InputMethodService`, `InCallService`, `TelecomManager`, `SensorManager` y `LocationManager`
+- `SharedPreferences`
+- almacenamiento interno
 
-## Arquitectura resumida
+### APIs y capacidades nativas
 
-Algunas piezas clave del proyecto:
+- `InputMethodService`
+- `InCallService`
+- `TelecomManager`
+- `LocationManager`
+- `SensorManager`
+- `WebView`
 
-- `MainActivity`: launcher principal, clima, accesos directos y contactos
-- `SetupActivity`: configuración inicial guiada
-- `ShortcutOrganizerActivity`: reordenación y gestión de accesos directos
-- `DialerActivity`, `CallConfirmationActivity` y `CallActivity`: flujo de llamada
-- `Easy2InCallService`: integración con llamadas del sistema
-- `UtilitiesActivity`: acceso al calendario, notas y escáner
-- `SeniorCalendarActivity`: calendario simplificado
-- `NotesActivity`: notas persistentes
-- `FoodScannerActivity` y `Gs1DateParser`: lectura de códigos y extracción de fechas
-- `Easy2InputMethodService`: teclado propio
-- `PickupMonitorService`: detección de movimiento y despertar de pantalla
-- `LauncherPreferences` y `ShortcutStorage`: persistencia local
+### Servidor local
 
-## Público objetivo
+- Python
+- Flask
+- Authlib
+- SQLite
 
-Esta app está especialmente orientada a:
+---
 
-- personas mayores
-- usuarios con baja alfabetización digital
-- familias y cuidadores que quieran simplificar el uso del móvil
-- contextos donde la rapidez y claridad de acceso sean prioritarias
+## Decisiones de producto inteligentes
 
-## Permisos que utiliza
+- **Offline-first en el núcleo:** el valor principal no depende de un backend externo.
+- **Backend opcional:** el panel de administración amplía la solución, pero no bloquea el uso base.
+- **Accesibilidad como arquitectura, no como parche:** el diseño funcional influye en navegación, llamadas, teclado y utilidades.
+- **Uso de capacidades nativas con propósito:** cada permiso responde a una funcionalidad concreta y visible.
 
-Para ofrecer toda la experiencia, Easy 2 solicita permisos de:
+---
 
-- contactos
-- ubicación
-- cámara
-- llamadas
-- servicio en primer plano
+## Privacidad y permisos
 
-Cada permiso responde a una función concreta de la app:
+Easy 2 solicita permisos porque ofrece funciones concretas, no porque recoja datos sin propósito.
 
-- contactos: mostrar y llamar a contactos guardados
-- ubicación: cargar el clima real del lugar donde está el usuario
-- cámara: escanear códigos de barras de alimentos
-- llamadas: iniciar y gestionar llamadas desde la propia interfaz
+| Permiso | Motivo |
+|---|---|
+| `READ_CONTACTS` | mostrar y llamar a contactos guardados |
+| `CALL_PHONE` | iniciar llamadas desde la propia interfaz |
+| `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION` | obtener clima y, si se activa, soporte al panel local |
+| `CAMERA` | escanear códigos de barras de alimentos |
+| `FOREGROUND_SERVICE` | soporte a procesos persistentes del dispositivo |
+| `WAKE_LOCK` | reactivar pantalla en la experiencia de uso |
+| `INTERNET` | clima y comunicación con el servidor local opcional |
 
-## Limitaciones actuales
+---
 
-- El clima depende de conexión a internet y permisos de ubicación.
-- El escáner solo puede mostrar fecha si el código incorpora esa información en formato GS1.
-- Algunas funciones de llamada requieren que Easy 2 sea configurada como app de teléfono por defecto.
-- La experiencia completa mejora si el usuario también activa Easy 2 como launcher y como teclado.
+## Demo recomendada para jurado
+
+Si solo tienes 2 o 3 minutos, esta es la secuencia ideal:
+
+1. Presenta el problema: “un smartphone normal sigue siendo demasiado complejo para muchas personas mayores”.
+2. Enseña el onboarding guiado.
+3. Abre el launcher y deja que se vea la jerarquía visual.
+4. Entra a un contacto favorito y muestra la llamada simplificada.
+5. Enseña el acceso a SOS e información médica.
+6. Abre utilidades y enseña calendario, notas y escáner.
+7. Cierra con el modo administrador y el panel local, si quieres reforzar la visión de acompañamiento.
+
+---
 
 ## Cómo ejecutar el proyecto
 
 ### Requisitos
 
 - Android Studio
-- JDK 11
-- dispositivo o emulador con Android 11 o superior
+- JDK
+- dispositivo físico o emulador compatible
 
-### Configuración
+### App Android
 
 1. Abre el proyecto en Android Studio.
-2. Espera a que Gradle sincronice las dependencias.
-3. Ejecuta la app en un dispositivo físico o emulador.
-4. Concede permisos de contactos, ubicación y cámara cuando la app los solicite.
-5. Para probar toda la experiencia, configura Easy 2 como:
+2. Espera a que Gradle sincronice dependencias.
+3. Ejecuta la app.
+4. Concede permisos cuando se soliciten.
+5. Para ver la experiencia completa, configura Easy 2 como:
    - launcher predeterminado
    - app de teléfono
    - teclado activo
@@ -177,30 +275,49 @@ Cada permiso responde a una función concreta de la app:
 ./gradlew assembleDebug
 ```
 
-## Guion breve para una presentación
+### Servidor local opcional
 
-Si quieres presentar la app en clase, demo o portfolio, este orden funciona bien:
+```bash
+cd local_server
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python app.py
+```
 
-1. Explica el problema: los smartphones tradicionales no están pensados para muchos usuarios mayores.
-2. Enseña la configuración inicial guiada: nombre, edad, color, datos médicos y contactos.
-3. Muestra el launcher: hora, batería, clima, accesos rápidos y contactos visuales.
-4. Abre un contacto y enseña la confirmación de llamada.
-5. Enseña el botón SOS y el marcador simplificado.
-6. Abre el panel de utilidades y muestra calendario, notas y escáner de alimentos.
-7. Cierra con la idea principal: una experiencia móvil más simple, segura y autónoma.
+El panel de administración quedará disponible en:
 
-## Mensaje de presentación en una frase
+```text
+http://IP_DEL_SERVIDOR:8000/admin
+```
 
-> Easy 2 transforma un smartphone convencional en una interfaz accesible y segura, diseñada para que las personas mayores usen el móvil con más autonomía y menos fricción.
+---
 
-## Posibles mejoras futuras
+## Estado actual
+
+Easy 2 es un **MVP funcional con una visión de producto muy clara**:
+
+- experiencia principal ya integrada
+- componentes diferenciales implementados
+- valor social evidente
+- margen real de evolución hacia un producto de mayor alcance
+
+---
+
+## Roadmap natural
 
 - recordatorios y medicación
-- integración con asistencia auditiva
-- mayor personalización visual
-- sincronización opcional de datos
-- métricas de uso para cuidadores o familiares, respetando privacidad
+- personalización visual avanzada
+- métricas de uso respetuosas con la privacidad
+- integración con cuidadores y familiares
+- mejoras de accesibilidad auditiva y cognitiva
 
-## Estado del proyecto
+---
 
-Easy 2 se encuentra planteada como una solución funcional centrada en accesibilidad, simplificación de interacción y apoyo a tareas cotidianas desde un entorno Android unificado.
+## Cierre
+
+Easy 2 no intenta enseñar a una persona mayor a comportarse como un usuario experto.
+
+**Hace justo lo contrario: adapta el smartphone al ritmo, contexto y necesidades reales de quien lo usa.**
+
+Y ahí está su valor.
