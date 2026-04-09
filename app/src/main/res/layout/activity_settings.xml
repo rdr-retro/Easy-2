@@ -36,17 +36,25 @@
                 android:layout_marginTop="8dp"
                 android:text="@string/settings_subtitle"
                 android:textColor="@color/black"
-                android:textSize="20sp" />
+                android:textSize="18sp" />
 
             <TextView
                 android:id="@+id/settings_category_personal_view"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:letterSpacing="0.08"
                 android:text="@string/settings_category_personal"
                 android:textColor="@color/launcher_green"
-                android:textSize="20sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
+
+            <View
+                android:id="@+id/settings_category_personal_divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:background="#22000000" />
 
             <LinearLayout
                 android:id="@+id/settings_profile_card"
@@ -54,7 +62,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="22dp"
                 android:orientation="vertical"
-                android:padding="22dp">
+                android:paddingTop="16dp"
+                android:paddingBottom="4dp">
 
                 <TextView
                     android:id="@+id/settings_profile_title_view"
@@ -62,15 +71,24 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_section_profile"
                     android:textColor="@color/launcher_green"
-                    android:textSize="28sp"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:text="@string/setup_name_hint"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
                     android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/input_first_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
-                    android:background="@drawable/bg_setup_field"
+                    android:layout_marginTop="6dp"
+                    android:background="?attr/editTextBackground"
                     android:hint="@string/setup_name_hint"
                     android:imeOptions="actionNext"
                     android:inputType="textPersonName"
@@ -81,12 +99,21 @@
                     android:paddingBottom="14dp"
                     android:textSize="24sp" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/setup_last_name_hint"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
                 <EditText
                     android:id="@+id/input_last_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/bg_setup_field"
+                    android:layout_marginTop="6dp"
+                    android:background="?attr/editTextBackground"
                     android:hint="@string/setup_last_name_hint"
                     android:imeOptions="actionNext"
                     android:inputType="textPersonName"
@@ -97,12 +124,21 @@
                     android:paddingBottom="14dp"
                     android:textSize="24sp" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/setup_age_hint"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
                 <EditText
                     android:id="@+id/input_age"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/bg_setup_field"
+                    android:layout_marginTop="6dp"
+                    android:background="?attr/editTextBackground"
                     android:hint="@string/setup_age_hint"
                     android:imeOptions="actionDone"
                     android:inputType="number"
@@ -120,7 +156,7 @@
                     android:layout_marginTop="22dp"
                     android:text="@string/setup_role_title"
                     android:textColor="@color/launcher_green"
-                    android:textSize="22sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -130,7 +166,7 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/setup_role_detail"
                     android:textColor="@color/black"
-                    android:textSize="18sp" />
+                    android:textSize="16sp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -173,12 +209,21 @@
 
                 </LinearLayout>
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/settings_server_label"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
                 <EditText
                     android:id="@+id/input_server_url"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:background="@drawable/bg_setup_field"
+                    android:layout_marginTop="6dp"
+                    android:background="?attr/editTextBackground"
                     android:hint="@string/setup_server_url_hint"
                     android:imeOptions="actionDone"
                     android:inputType="textUri"
@@ -196,7 +241,7 @@
                     android:layout_marginTop="10dp"
                     android:text="@string/setup_server_url_helper"
                     android:textColor="@color/black"
-                    android:textSize="18sp" />
+                    android:textSize="16sp" />
 
             </LinearLayout>
 
@@ -206,7 +251,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:orientation="vertical"
-                android:padding="22dp">
+                android:paddingTop="16dp"
+                android:paddingBottom="4dp">
 
                 <TextView
                     android:id="@+id/settings_theme_title_view"
@@ -214,7 +260,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_section_theme"
                     android:textColor="@color/launcher_green"
-                    android:textSize="28sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
@@ -408,10 +454,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:letterSpacing="0.08"
                 android:text="@string/settings_category_health"
                 android:textColor="@color/launcher_green"
-                android:textSize="20sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
+
+            <View
+                android:id="@+id/settings_category_health_divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:background="#22000000" />
 
             <LinearLayout
                 android:id="@+id/settings_medical_card"
@@ -419,7 +473,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:orientation="vertical"
-                android:padding="22dp">
+                android:paddingTop="16dp"
+                android:paddingBottom="4dp">
 
                 <TextView
                     android:id="@+id/settings_medical_title_view"
@@ -427,15 +482,24 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_section_medical"
                     android:textColor="@color/launcher_green"
-                    android:textSize="28sp"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="18dp"
+                    android:text="@string/settings_medical_label"
+                    android:textColor="@color/black"
+                    android:textSize="15sp"
                     android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/input_medical_info"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
-                    android:background="@drawable/bg_setup_field"
+                    android:layout_marginTop="6dp"
+                    android:background="?attr/editTextBackground"
                     android:gravity="top|start"
                     android:hint="@string/setup_medical_info_hint"
                     android:inputType="textMultiLine|textCapSentences"
@@ -454,7 +518,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:orientation="vertical"
-                android:padding="22dp">
+                android:paddingTop="16dp"
+                android:paddingBottom="4dp">
 
                 <TextView
                     android:id="@+id/settings_contacts_title_view"
@@ -462,7 +527,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_section_contacts"
                     android:textColor="@color/launcher_green"
-                    android:textSize="28sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <LinearLayout
@@ -478,7 +543,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/setup_contacts_helper"
                         android:textColor="@color/black"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
 
                     <TextView
                         android:id="@+id/contact_slot_0"
@@ -544,6 +609,18 @@
                         android:textSize="22sp"
                         android:textStyle="bold" />
 
+                    <Button
+                        android:id="@+id/manage_contact_photos_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:minHeight="64dp"
+                        android:text="@string/settings_manage_contact_photos"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
                 </LinearLayout>
 
                 <TextView
@@ -553,7 +630,7 @@
                     android:layout_marginTop="18dp"
                     android:text="@string/setup_admin_contacts_helper"
                     android:textColor="@color/black"
-                    android:textSize="18sp"
+                    android:textSize="16sp"
                     android:visibility="gone" />
 
             </LinearLayout>
@@ -563,10 +640,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:letterSpacing="0.08"
                 android:text="@string/settings_category_accessibility"
                 android:textColor="@color/launcher_green"
-                android:textSize="20sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
+
+            <View
+                android:id="@+id/settings_category_accessibility_divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:background="#22000000" />
 
             <LinearLayout
                 android:id="@+id/settings_accessibility_card"
@@ -574,7 +659,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:orientation="vertical"
-                android:padding="22dp">
+                android:paddingTop="16dp"
+                android:paddingBottom="4dp">
 
                 <TextView
                     android:id="@+id/settings_accessibility_title_view"
@@ -582,7 +668,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_section_accessibility"
                     android:textColor="@color/launcher_green"
-                    android:textSize="28sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -592,42 +678,65 @@
                     android:layout_marginTop="10dp"
                     android:text="@string/settings_accessibility_detail"
                     android:textColor="@color/black"
-                    android:textSize="18sp" />
+                    android:textSize="16sp" />
 
-                <Button
-                    android:id="@+id/open_accessibility_settings_button"
+                <TextView
+                    android:id="@+id/settings_colorblind_title_view"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="18dp"
-                    android:backgroundTint="@color/launcher_green"
+                    android:text="@string/settings_accessibility_colorblind_title"
+                    android:textColor="@color/launcher_green"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/settings_colorblind_detail_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_accessibility_colorblind_detail"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+
+                <Button
+                    android:id="@+id/enable_colorblind_theme_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
                     android:minHeight="64dp"
-                    android:text="@string/settings_accessibility_open_main"
+                    android:text="@string/settings_accessibility_colorblind_enable"
                     android:textAllCaps="false"
                     android:textColor="@color/white"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/open_display_settings_button"
+                <TextView
+                    android:id="@+id/settings_high_contrast_title_view"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:backgroundTint="@color/launcher_green"
-                    android:minHeight="64dp"
-                    android:text="@string/settings_accessibility_open_display"
-                    android:textAllCaps="false"
-                    android:textColor="@color/white"
-                    android:textSize="22sp"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/settings_accessibility_high_contrast_title"
+                    android:textColor="@color/launcher_green"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/open_hearing_assist_button"
+                <TextView
+                    android:id="@+id/settings_high_contrast_detail_view"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:backgroundTint="@color/launcher_green"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/settings_accessibility_high_contrast_detail"
+                    android:textColor="@color/black"
+                    android:textSize="16sp" />
+
+                <Button
+                    android:id="@+id/enable_high_contrast_theme_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
                     android:minHeight="64dp"
-                    android:text="@string/settings_accessibility_open_hearing"
+                    android:text="@string/settings_accessibility_high_contrast_enable"
                     android:textAllCaps="false"
                     android:textColor="@color/white"
                     android:textSize="22sp"
@@ -640,10 +749,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
+                android:letterSpacing="0.08"
                 android:text="@string/settings_category_system"
                 android:textColor="@color/launcher_green"
-                android:textSize="20sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
+
+            <View
+                android:id="@+id/settings_category_system_divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="8dp"
+                android:background="#22000000" />
 
             <LinearLayout
                 android:id="@+id/settings_support_card"
@@ -651,7 +768,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:orientation="vertical"
-                android:padding="22dp">
+                android:paddingTop="16dp"
+                android:paddingBottom="4dp">
 
                 <TextView
                     android:id="@+id/settings_support_title_view"
@@ -659,7 +777,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_section_support"
                     android:textColor="@color/launcher_green"
-                    android:textSize="28sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <Button
@@ -667,7 +785,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="18dp"
-                    android:backgroundTint="@color/launcher_green"
                     android:minHeight="64dp"
                     android:text="@string/organize_shortcuts"
                     android:textAllCaps="false"
@@ -680,7 +797,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:backgroundTint="@color/launcher_green"
                     android:minHeight="64dp"
                     android:text="@string/open_phone_settings"
                     android:textAllCaps="false"
@@ -693,7 +809,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:backgroundTint="@color/launcher_green"
                     android:minHeight="64dp"
                     android:text="@string/open_keyboard_settings"
                     android:textAllCaps="false"
@@ -727,7 +842,6 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="0.58"
-                    android:backgroundTint="@color/launcher_green"
                     android:minHeight="68dp"
                     android:text="@string/settings_save"
                     android:textAllCaps="false"

@@ -20,8 +20,8 @@
 
         <ImageView
             android:id="@+id/phone_app_icon"
-            android:layout_width="84dp"
-            android:layout_height="84dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:layout_gravity="center"
             android:contentDescription="@null"
             android:scaleType="centerInside" />

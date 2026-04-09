@@ -50,6 +50,7 @@
                         android:background="@drawable/bg_contact_avatar_placeholder">
 
                         <ImageView
+                            android:id="@+id/utility_calendar_icon"
                             android:layout_width="78dp"
                             android:layout_height="78dp"
                             android:layout_gravity="center"
@@ -92,6 +93,7 @@
                         android:background="@drawable/bg_contact_avatar_placeholder">
 
                         <ImageView
+                            android:id="@+id/utility_note_icon"
                             android:layout_width="78dp"
                             android:layout_height="78dp"
                             android:layout_gravity="center"
@@ -142,6 +144,7 @@
                         android:background="@drawable/bg_contact_avatar_placeholder">
 
                         <ImageView
+                            android:id="@+id/utility_scan_food_icon"
                             android:layout_width="78dp"
                             android:layout_height="78dp"
                             android:layout_gravity="center"
@@ -184,6 +187,7 @@
                         android:background="@drawable/bg_contact_avatar_placeholder">
 
                         <ImageView
+                            android:id="@+id/utility_hearing_icon"
                             android:layout_width="78dp"
                             android:layout_height="78dp"
                             android:layout_gravity="center"
@@ -234,6 +238,7 @@
                         android:background="@drawable/bg_contact_avatar_placeholder">
 
                         <ImageView
+                            android:id="@+id/utility_alarm_icon"
                             android:layout_width="78dp"
                             android:layout_height="78dp"
                             android:layout_gravity="center"
