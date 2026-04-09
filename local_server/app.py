@@ -328,6 +328,17 @@ def can_auto_create_admin(email: str) -> bool:
     return normalized_email in allowed_emails or domain in allowed_domains
 
 
+def describe_google_oauth_source() -> str:
+    json_path = str(app.config.get("GOOGLE_CLIENT_JSON_PATH", "")).strip()
+    if json_path:
+        return f"JSON detectado automaticamente: {Path(json_path).name}"
+
+    if app.config.get("GOOGLE_CLIENT_ID") and app.config.get("GOOGLE_CLIENT_SECRET"):
+        return "variables EASY2_GOOGLE_CLIENT_ID / EASY2_GOOGLE_CLIENT_SECRET"
+
+    return ""
+
+
 def admin_row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
     if row is None:
         return None
@@ -497,8 +508,8 @@ def login() -> Any:
         "login.html",
         embedded=request.args.get("embedded") == "1" or "embedded=1" in next_value,
         next_path=next_value,
-        callback_url=external_url_for("auth_google_callback"),
         oauth_enabled=GOOGLE_OAUTH_ENABLED,
+        oauth_source=describe_google_oauth_source(),
         notice=pop_login_notice(),
         signup_policy_summary=build_signup_policy_summary(),
         admin_count=count_admin_users(),

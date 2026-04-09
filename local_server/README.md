@@ -50,6 +50,13 @@ export EASY2_GOOGLE_CLIENT_SECRET="tu-client-secret"
 
 Tambien puedes dejar el JSON descargado de Google en la raiz del proyecto con nombre tipo `client_secret_....json` y el servidor lo leerá automáticamente.
 
+Error habitual:
+
+- Si Google muestra `Error 403: org_internal`, el cliente OAuth pertenece a una app de tipo interno de Google Workspace.
+- En ese caso solo pueden entrar cuentas de esa misma organización.
+- La solución es usar una cuenta del Workspace propietario o crear otro cliente OAuth web en un proyecto con pantalla de consentimiento de tipo externo.
+- Si sigues viendo el mismo error, revisa que el servidor no esté cargando un `client_secret_*.json` antiguo desde la raíz del proyecto y usa `EASY2_GOOGLE_CLIENT_JSON` para apuntar al JSON correcto.
+
 Variables útiles:
 
 - `EASY2_GOOGLE_AUTO_CREATE=1`

@@ -31,6 +31,11 @@
             <p class="section-help">
                 Administradores creados hasta ahora: <strong>{{ admin_count }}</strong>
             </p>
+            {% if oauth_source %}
+            <p class="section-help">
+                Credenciales cargadas desde: <strong>{{ oauth_source }}</strong>
+            </p>
+            {% endif %}
 
             {% if embedded %}
             <p class="section-help">
@@ -40,7 +45,17 @@
 
             {% if oauth_enabled %}
             <p class="tool-row">
-                <a class="button" href="{{ url_for('auth_google', next=next_path) }}">Entrar con Google</a>
+                <a class="google-signin-button" href="{{ url_for('auth_google', next=next_path) }}">
+                    <span class="google-signin-icon" aria-hidden="true">
+                        <svg viewBox="0 0 18 18" role="img" focusable="false">
+                            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.56 2.68-3.86 2.68-6.62Z"/>
+                            <path fill="#34A853" d="M9 18c2.43 0 4.46-.8 5.95-2.18l-2.92-2.26c-.81.54-1.84.86-3.03.86-2.33 0-4.31-1.57-5.02-3.68H1.96V13c1.48 2.94 4.52 5 7.04 5Z"/>
+                            <path fill="#FBBC05" d="M3.98 10.74A5.41 5.41 0 0 1 3.7 9c0-.6.1-1.18.28-1.74V5H1.96A9 9 0 0 0 1 9c0 1.45.35 2.82.96 4l2.02-2.26Z"/>
+                            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.33l2.58-2.58C13.45.9 11.42 0 9 0 5.48 0 2.44 2.06.96 5l3.02 2.26c.71-2.11 2.69-3.68 5.02-3.68Z"/>
+                        </svg>
+                    </span>
+                    <span class="google-signin-label">Iniciar sesión con Google</span>
+                </a>
             </p>
             {% else %}
             <div class="login-message login-message-error">
@@ -49,21 +64,6 @@
             {% endif %}
         </fieldset>
 
-        <fieldset class="box login-box">
-            <legend>Configuración necesaria</legend>
-            <ol class="setup-steps">
-                <li>Crea un cliente OAuth de tipo web en Google Cloud Console.</li>
-                <li>Añade esta callback como redirect URI autorizada: <code>{{ callback_url }}</code></li>
-                <li>Configura las variables del servidor con el client ID y el client secret.</li>
-                <li>Vuelve a abrir esta página y entra con Google.</li>
-            </ol>
-            <p class="section-help">
-                Vuelta tras login: <code>{{ next_path }}</code>
-            </p>
-            <p class="section-help">
-                Si el servidor se abre con otra IP o dominio, actualiza tambien la redirect URI en Google.
-            </p>
-        </fieldset>
     </div>
 </body>
 </html>
