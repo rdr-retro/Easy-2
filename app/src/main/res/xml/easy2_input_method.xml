@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:isAsciiCapable="true"
+    android:settingsActivity="com.rdr.easy2.KeyboardActivationActivity"
+    android:supportsSwitchingToNextInputMethod="true">
+
+    <subtype
+        android:name="@string/keyboard_subtype_label"
+        android:languageTag="es-ES"
+        android:imeSubtypeMode="keyboard"
+        android:isAsciiCapable="true" />
+
+</input-method>
